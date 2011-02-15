@@ -3,3 +3,11 @@ OldSchoolCpp - Old-School C++
 
 I'm just tinkering with some C++ code like the good ol' days.
 
+Project structure:
+
+	kwr/
+		unittest/
+		debug/
+		utility/
+	test/
+
