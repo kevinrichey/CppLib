@@ -1,8 +1,6 @@
 #ifndef kwr_UNITTEST_H
 #define kwr_UNITTEST_H 
 
-#include "SourceLine.h"
-
 namespace kwr
 {
 	class UnitTest
