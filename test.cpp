@@ -190,6 +190,35 @@ kwr_Test(String_inequality_operator)
 	kwr_Assert( Expect(first) != second );
 }
 
+kwr_Test(StringConvert_int)
+{
+	kwr_Assert( Expect(StringConvert(10)) == String("10") );
+	kwr_Assert( Expect(StringConvert(-1)) == String("-1") );
+}
+
+kwr_Test(StringConvert_String)
+{
+	String text("text");
+	kwr_Assert( Expect(StringConvert(text)) == String("text") );
+}
+
+kwr_Test(StringConvert_chars)
+{
+	const char* text = "text";
+	kwr_Assert( Expect(StringConvert(text)) == String("text") );
+}
+
+kwr_Test(StringConvert_bool)
+{
+	kwr_Assert( Expect(StringConvert(true)) == String("true") );
+	kwr_Assert( Expect(StringConvert(false)) == String("false") );
+}
+
+kwr_Test(StringConvert_double)
+{
+	kwr_Assert( Expect(StringConvert(0.1)) == String("0.100000") );
+}
+
 int main()
 {
 	UnitTest::RunAll();

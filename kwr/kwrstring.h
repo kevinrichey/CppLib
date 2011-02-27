@@ -39,5 +39,12 @@ namespace kwr
 	bool operator!= (const String& left, const String& right);
 	std::ostream& operator<< (std::ostream& out, const String& str);
 
+	String StringConvert(int value);
+	String StringConvert(long value);
+	String StringConvert(const String& value);
+	String StringConvert(const char* value);
+	String StringConvert(bool value);
+	String StringConvert(double value);
+
 }
 #endif

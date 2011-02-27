@@ -68,4 +68,39 @@ namespace kwr
 		out << str.Cstr();
 		return out;
 	}
+
+	String StringConvert(int value)
+	{
+		return StringConvert((long)value);
+	}
+
+	String StringConvert(long value)
+	{
+		char buffer[sizeof(long)*3];
+		sprintf(buffer, "%ld", value);
+		return String(buffer);
+	}
+
+	String StringConvert(const String& value)
+	{
+		return value;
+	}
+
+	String StringConvert(const char* value)
+	{
+		return String(value);
+	}
+
+	String StringConvert(bool value)
+	{
+		return String( value ? "true" : "false" );
+	}
+
+	String StringConvert(double value)
+	{
+		char buffer[100];
+		sprintf(buffer, "%f", value);
+		return String(buffer);
+	}
+
 }
