@@ -6,7 +6,7 @@
 #include "kwr/UnitTest.h"
 #include "kwr/Range.hpp"
 #include "kwr/assertion.hpp"
-#include "kwr/String.h"
+#include "kwr/kwrstring.h"
 
 using namespace std;
 using namespace kwr;
@@ -177,8 +177,9 @@ kwr_Test(String_swap)
 kwr_Test(String_equality_operator)
 {
 	String first("Ka-Chow!");
+	String second("Kachooga!");
+	kwr_Assert( Expect(first == second).IsFalse() );
 	kwr_Assert( Expect(first) == String("Ka-Chow!") );
-	kwr_Assert( Expect(first == "Kachooga!").IsFalse() );
 }
 
 kwr_Test(String_inequality_operator)
