@@ -17,6 +17,28 @@ namespace kwr
 	{
 		const ActualType& actualValue;
 
+		Assertion<const char*, const char*> IsTrue() const
+		{
+			return Assertion<const char*,const char*> 
+			{
+				actualValue ? "true" : "false",
+				 "true",
+				 "IsTrue",
+				 actualValue
+			};
+		}
+
+		Assertion<const char*, const char*> IsFalse() const
+		{
+			return Assertion<const char*,const char*> 
+			{
+				actualValue ? "true" : "false",
+				 "false",
+				 "IsFalse",
+				 !actualValue
+			};
+		}
+
 		template<class ExpectedType>
 		Assertion<ActualType,ExpectedType> operator==(const ExpectedType& expectedValue) const
 		{
