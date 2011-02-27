@@ -10,11 +10,6 @@
 using namespace std;
 using namespace kwr;
 
-kwr_Test(FailingTest)
-{
-	kwr_Assert(false);
-}
-
 kwr_Test(SourceLine)
 {
 	auto source = kwr_SourceLine;
@@ -27,41 +22,95 @@ kwr_Test(Range_Length_between_min_and_max)
 	kwr_Assert(Range<int>(10,20).Length() == 11);
 }
 
-template<class AssertionType>
-void PrintAssert(const AssertionType& assertion)
+kwr_Test(Expect_equals_false)
 {
-	cout << "Condition: " << assertion.type << endl;
-	cout << "   Result: " << (assertion.result ? "true" : "false") << endl;
-	cout << "   Expected: " << assertion.expected << endl;
-	cout << "   But was:  " << assertion.actual << endl;
+	auto assertion = Expect(10) == 1;
+	kwr_Assert( !assertion.result );
+	kwr_Assert( assertion.actual == 10 );
+	kwr_Assert( assertion.expected == 1 );
+	kwr_Assert( !strcmp(assertion.type, "Equals") );
+}
+
+kwr_Test(Expect_equals_true)
+{
+	auto assertion = Expect(4) == 4;
+	kwr_Assert( assertion.result );
+	kwr_Assert( assertion.actual == 4 );
+	kwr_Assert( assertion.expected == 4 );
+	kwr_Assert( !strcmp(assertion.type, "Equals") );
+}
+
+kwr_Test(Expect_not_equals_false)
+{
+	auto assertion = Expect(5) != 5;
+	kwr_Assert( !assertion.result );
+	kwr_Assert( assertion.actual == 5 );
+	kwr_Assert( assertion.expected == 5 );
+	kwr_Assert( !strcmp(assertion.type, "Not equals") );
+}
+
+kwr_Test(Expect_not_equals_true)
+{
+	auto assertion = Expect(5) != 6;
+	kwr_Assert( assertion.result );
+	kwr_Assert( assertion.actual == 5 );
+	kwr_Assert( assertion.expected == 6 );
+	kwr_Assert( !strcmp(assertion.type, "Not equals") );
+}
+
+kwr_Test(Expect_IsNull_true)
+{
+	char* n = NULL;
+	auto assertion = Expect(n).IsNull();
+	kwr_Assert( assertion.result );
+	kwr_Assert( !strcmp(assertion.actual, "Null") );
+	kwr_Assert( !strcmp(assertion.expected, "Null") );
+	kwr_Assert( !strcmp(assertion.type, "IsNull") );
+}
+
+kwr_Test(Expect_NotNull_false)
+{
+	char* n = NULL;
+	auto assertion = Expect(n).NotNull();
+	kwr_Assert( !assertion.result );
+	kwr_Assert( !strcmp(assertion.actual, "Null") );
+	kwr_Assert( !strcmp(assertion.expected, "not Null") );
+	kwr_Assert( !strcmp(assertion.type, "NotNull") );
 }
 
 class Puke {};
-void Barf()
+void Barf() { throw Puke(); }
+void Nope() { }
+
+kwr_Test(Expect_Throws_true)
 {
-	throw Puke();
+	auto assertion = Expect(Barf).Throws<Puke>();
+	kwr_Assert( assertion.result );
+	kwr_Assert( !strcmp(assertion.actual, "thrown exception") );
+	kwr_Assert( !strcmp(assertion.expected, "thrown exception") );
+	kwr_Assert( !strcmp(assertion.type, "Throws") );
 }
 
-void Nope()
+kwr_Test(Expect_Throws_false)
 {
+	auto assertion = Expect(Nope).Throws<Puke>();
+	kwr_Assert( !assertion.result );
+	kwr_Assert( !strcmp(assertion.actual, "exception not thrown") );
+	kwr_Assert( !strcmp(assertion.expected, "thrown exception") );
+	kwr_Assert( !strcmp(assertion.type, "Throws") );
+}
+
+kwr_Test(Assertion_failures)
+{
+	kwr_Assert( Expect(100) == 1 );
+	kwr_Assert( Expect(2) != 2 );
+	kwr_Assert( Expect(this).IsNull() );
+	kwr_Assert( Expect(Nope).Throws<Puke>() );
 }
 
 int main()
 {
 	UnitTest::RunAll();
-
-	PrintAssert( Expect(10) == 1 );
-	PrintAssert( Expect(4) == 4 );
-	PrintAssert( Expect(5) != 5 );
-	PrintAssert( Expect(5) != 6 );
-
-	char* n = NULL;
-	PrintAssert( Expect(n).IsNull() );
-	PrintAssert( Expect(n).NotNull() );
-
-	PrintAssert( Expect(Barf).Throws<Puke>() );
-	PrintAssert( Expect(Nope).Throws<Puke>() );
-
 	return 0;
 }
 
