@@ -1,8 +1,11 @@
 #include "kwrstring.h"
+#include <cstdio>
 #include <cstring>
 
 namespace kwr
 {
+	using namespace std;
+
 	String::String(const char* s) 
 		: data(new char[strlen(s)+1])
 	{
@@ -63,15 +66,16 @@ namespace kwr
 		return !(left == right);
 	}
 
-	std::ostream& operator<< (std::ostream& out, const String& str)
-	{
-		out << str.Cstr();
-		return out;
-	}
-
 	String StringConvert(int value)
 	{
 		return StringConvert((long)value);
+	}
+
+	String StringConvert(unsigned int value)
+	{
+		char buffer[sizeof(unsigned int)*3];
+		sprintf(buffer, "%u", value);
+		return String(buffer);
 	}
 
 	String StringConvert(long value)

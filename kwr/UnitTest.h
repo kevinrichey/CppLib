@@ -2,7 +2,7 @@
 #define kwr_UNITTEST_H 
 
 #include "assertion.hpp"
-#include <iostream>
+#include "kwrstring.h"
 
 namespace kwr
 {
@@ -27,8 +27,8 @@ namespace kwr
 			if(!assertion.result) 
 			{
 				printf("%s:%d: %s: %s Assert failed\n", filename, lineNum, name, assertion.type);
-				std::cout << "   Expected: " << assertion.expected << std::endl;
-				std::cout << "   But was:  " << assertion.actual << std::endl;
+				printf("   Expected: %s\n", StringConvert(assertion.expected).Cstr());
+				printf("    but was: %s\n", StringConvert(assertion.actual).Cstr());
 			}
 		}
 	};

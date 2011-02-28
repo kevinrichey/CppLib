@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <cstring>
 #include <cassert>
-#include <iostream>
 #include "kwr/SourceLine.h"
 #include "kwr/UnitTest.h"
 #include "kwr/Range.hpp"
@@ -217,6 +216,13 @@ kwr_Test(StringConvert_bool)
 kwr_Test(StringConvert_double)
 {
 	kwr_Assert( Expect(StringConvert(0.1)) == String("0.100000") );
+}
+
+kwr_Test(String_with_printf)
+{
+	char output[100];
+	snprintf(output, sizeof(output), "%s", StringConvert(100).Cstr());
+	kwr_Assert( Expect(strcmp(output,"100")) == 0 );
 }
 
 int main()

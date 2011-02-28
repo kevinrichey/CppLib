@@ -1,8 +1,6 @@
 #ifndef kwr_STRING_H
 #define kwr_STRING_H
 
-#include <iostream>
-
 namespace kwr
 {
 	class String
@@ -37,9 +35,9 @@ namespace kwr
 
 	bool operator== (const String& left, const String& right);
 	bool operator!= (const String& left, const String& right);
-	std::ostream& operator<< (std::ostream& out, const String& str);
 
 	String StringConvert(int value);
+	String StringConvert(unsigned int value);
 	String StringConvert(long value);
 	String StringConvert(const String& value);
 	String StringConvert(const char* value);
