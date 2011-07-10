@@ -1,3 +1,8 @@
 test.cpp
-kwr/UnitTest.cpp
-kwr/kwrstring.cpp
+testKwrString.cpp
+testRange.cpp
+testAssertion.cpp
+testSourceLine.cpp
+testRef.cpp
+UnitTest.cpp
+kwrstring.cpp
