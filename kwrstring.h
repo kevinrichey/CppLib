@@ -10,39 +10,28 @@ namespace kwr
 		public:
 		explicit String(const char* s);
 		String(const String& other);
+		
+		explicit String(int number);
+		explicit String(unsigned int number);
+		explicit String(bool boolean);
+		explicit String(double number);
 
-	// Modifiers
-	
 		String& operator= (const String& other);
 		void Copy(const String& other);
 		void Swap(String& other);
-
-	// Queries
 
 		unsigned Length() const;
 		bool Equals(const String& other) const;
 		const char * const Cstr() const;
 
-	// Comparisons
-
 		friend bool operator== (const String& left, const String& right);
 		friend bool operator!= (const String& left, const String& right);
-
-	// Destructor
 
 		~String();
 	};
 
 	bool operator== (const String& left, const String& right);
 	bool operator!= (const String& left, const String& right);
-
-	String StringConvert(int value);
-	String StringConvert(unsigned int value);
-	String StringConvert(long value);
-	String StringConvert(const String& value);
-	String StringConvert(const char* value);
-	String StringConvert(bool value);
-	String StringConvert(double value);
 
 }
 #endif

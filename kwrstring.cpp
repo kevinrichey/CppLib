@@ -18,6 +18,30 @@ namespace kwr
 		strcpy(data, other.Cstr());
 	}
 
+	String::String(int number)
+		: data(new char[sizeof(long)*3])
+	{
+		sprintf(data, "%d", number);
+	}
+
+	String::String(unsigned int number)
+		: data(new char[sizeof(unsigned int)*3])
+	{
+		sprintf(data, "%u", number);
+	}
+
+	String::String(bool boolean)
+		: data(new char[6])
+	{
+		strcpy(data, boolean ? "true" : "false");
+	}
+
+	String::String(double number)
+		: data(new char[100])
+	{
+		sprintf(data, "%f", number);
+	}
+
 	String& String::operator= (const String& other)
 	{
 		Copy(other);
@@ -64,47 +88,6 @@ namespace kwr
 	bool operator!= (const String& left, const String& right)
 	{
 		return !(left == right);
-	}
-
-	String StringConvert(int value)
-	{
-		return StringConvert((long)value);
-	}
-
-	String StringConvert(unsigned int value)
-	{
-		char buffer[sizeof(unsigned int)*3];
-		sprintf(buffer, "%u", value);
-		return String(buffer);
-	}
-
-	String StringConvert(long value)
-	{
-		char buffer[sizeof(long)*3];
-		sprintf(buffer, "%ld", value);
-		return String(buffer);
-	}
-
-	String StringConvert(const String& value)
-	{
-		return value;
-	}
-
-	String StringConvert(const char* value)
-	{
-		return String(value);
-	}
-
-	String StringConvert(bool value)
-	{
-		return String( value ? "true" : "false" );
-	}
-
-	String StringConvert(double value)
-	{
-		char buffer[100];
-		sprintf(buffer, "%f", value);
-		return String(buffer);
 	}
 
 }

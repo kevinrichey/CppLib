@@ -61,38 +61,37 @@ kwr_Test(String_inequality_operator)
 
 kwr_Test(StringConvert_int)
 {
-	kwr_Assert( Expect(StringConvert(10)) == String("10") );
-	kwr_Assert( Expect(StringConvert(-1)) == String("-1") );
+	kwr_Assert( Expect(String(10)) == String("10") );
+	kwr_Assert( Expect(String(-1)) == String("-1") );
 }
 
 kwr_Test(StringConvert_String)
 {
 	String text("text");
-	kwr_Assert( Expect(StringConvert(text)) == String("text") );
+	kwr_Assert( Expect(String(text)) == String("text") );
 }
 
 kwr_Test(StringConvert_chars)
 {
 	const char* text = "text";
-	kwr_Assert( Expect(StringConvert(text)) == String("text") );
+	kwr_Assert( Expect(String(text)) == String("text") );
 }
 
 kwr_Test(StringConvert_bool)
 {
-	kwr_Assert( Expect(StringConvert(true)) == String("true") );
-	kwr_Assert( Expect(StringConvert(false)) == String("false") );
+	kwr_Assert( Expect(String(true)) == String("true") );
+	kwr_Assert( Expect(String(false)) == String("false") );
 }
 
 kwr_Test(StringConvert_double)
 {
-	kwr_Assert( Expect(StringConvert(0.1)) == String("0.100000") );
+	kwr_Assert( Expect(String(0.1)) == String("0.100000") );
 }
 
 kwr_Test(String_with_printf)
 {
 	char output[100];
-	snprintf(output, sizeof(output), "%s", StringConvert(100).Cstr());
+	snprintf(output, sizeof(output), "%s", String(100).Cstr());
 	kwr_Assert( Expect(strcmp(output,"100")) == 0 );
 }
-
 

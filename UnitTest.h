@@ -3,6 +3,7 @@
 
 #include "assertion.hpp"
 #include "kwrstring.h"
+#include <cstdio>
 
 namespace kwr
 {
@@ -27,8 +28,8 @@ namespace kwr
 			if(!assertion.result) 
 			{
 				printf("%s:%d: %s: %s Assert failed\n", filename, lineNum, name, assertion.type);
-				printf("   Expected: %s\n", StringConvert(assertion.expected).Cstr());
-				printf("    but was: %s\n", StringConvert(assertion.actual).Cstr());
+				printf("   Expected: %s\n", String(assertion.expected).Cstr());
+				printf("    but was: %s\n", String(assertion.actual).Cstr());
 			}
 		}
 	};
