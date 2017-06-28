@@ -1,12 +1,12 @@
 #include <cstdio>
-#include "UnitTest.h"
+#include "TestCase.h"
 
 using namespace std;
 using namespace kwr;
 
 int main()
 {
-	UnitTest::RunAll();
+	TestCase::RunAll();
 	return 0;
 }
 
