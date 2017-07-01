@@ -4,43 +4,68 @@
 
 namespace kwr {  //{{{1
 
+//{{{2 HitBox
+
+bool HitBox::CollidesWith(const HitBox& target) const
+{
+   return 
+      !( Left()   > target.Right()  ||
+         Right()  < target.Left()   ||
+         Top()    > target.Bottom() ||
+         Bottom() < target.Top() );
+}
+
+HitBox HitBox::MovedBy(int x, int y) const
+{
+   return HitBox( SDL_Rect { Left()+x, Top()+y, Width(), Height() } );
+}
+
 //{{{2  Sprite class
 
-Sprite::Sprite(Renderer& renderer, const char* filename)
+Sprite::Sprite(Renderer& renderer, const BitmapSurface& bitmap)
+   :
+      texture(renderer, bitmap),
+      hitbox( SDL_Rect { 0, 0, bitmap->w, bitmap->h } ),
+      dx(0), dy(0)
 {
-   BitmapSurface bitmap(filename);
-   texture.CreateFrom(renderer, bitmap);
-   drawRect.x = 0;
-   drawRect.y = 0;
-   drawRect.w = bitmap->w;
-   drawRect.h = bitmap->h;
+}
+
+Sprite::Sprite(Renderer& renderer, const char* filename)
+   : 
+      Sprite(renderer, BitmapSurface(filename))
+{
 }
 
 void Sprite::MoveTo(int x, int y)
 {
-   drawRect.x = x;
-   drawRect.y = y;
+   hitbox.rect.x = x;
+   hitbox.rect.y = y;
 }
 
-void Sprite::Move(int dx, int dy)
+void Sprite::Move()
 {
-   drawRect.x += dx;
-   drawRect.y += dy;
+   hitbox.rect.x += dx;
+   hitbox.rect.y += dy;
+}
+
+void Sprite::SetVelocityX(int v)
+{
+   dx = v;
+}
+
+void Sprite::SetVelocityY(int v)
+{
+   dy = v;
+}
+
+bool Sprite::WouldHit(const Sprite& target) const
+{
+   return hitbox.MovedBy(dx, dy).CollidesWith(target.hitbox);
 }
 
 void Sprite::Draw(Renderer& renderer)
 {
-   SDL_RenderCopy( renderer, texture, NULL, &drawRect );
-}
-
-int Sprite::Width() const
-{
-   return drawRect.w;
-}
-
-int Sprite::Height() const
-{
-   return drawRect.h;
+   SDL_RenderCopy( renderer, texture, NULL, &hitbox.rect );
 }
 
 Sprite::~Sprite() throw()
@@ -110,6 +135,28 @@ void GameDriver::Render()
 }
 
 void GameDriver::Update()
+{
+}
+
+//{{{2  SimpleDrawWindow class
+
+SimpleDrawWindow::SimpleDrawWindow()
+{
+}
+
+void SimpleDrawWindow::Setup()
+{
+}
+
+void SimpleDrawWindow::HandleEvent(const SDL_Event& event)
+{
+   if( event.type == SDL_QUIT )
+   {
+      Stop();
+   }
+}
+
+void SimpleDrawWindow::Update()
 {
 }
 

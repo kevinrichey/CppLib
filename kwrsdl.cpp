@@ -60,10 +60,10 @@ Renderer::~Renderer() throw()
 
 //{{{2 Texture
 
-Texture::Texture(Renderer& renderer, SDL_Surface* sourceSurface)
+Texture::Texture(Renderer& renderer, const SDL_Surface* const sourceSurface)
    : texture( NULL )
 {
-   CreateFrom(renderer, sourceSurface);
+   CreateFrom(renderer, const_cast<SDL_Surface*>(sourceSurface));
 }
 
 void Texture::CreateFrom(Renderer& renderer, SDL_Surface* sourceSurface)

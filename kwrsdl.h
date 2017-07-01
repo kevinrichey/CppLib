@@ -50,7 +50,9 @@ class BitmapSurface : NonCopyable //{{{1
    public:
       BitmapSurface(const char* filename);
       operator SDL_Surface*() { return surface; }
+      operator const SDL_Surface*() const { return surface; }
       SDL_Surface *operator->() { return surface; }
+      const SDL_Surface * const operator->() const { return surface; }
       virtual ~BitmapSurface() throw();
 
 	private:
@@ -61,7 +63,7 @@ class Texture : NonCopyable //{{{1
 {
    public:
       explicit Texture() : texture(NULL) {}
-      explicit Texture(Renderer& renderer, SDL_Surface* sourceSurface);
+      explicit Texture(Renderer& renderer, const SDL_Surface* const sourceSurface);
       operator SDL_Texture*() throw() { return texture; }
       void CreateFrom(Renderer& renderer, SDL_Surface* sourceSurface);
       virtual ~Texture() throw();

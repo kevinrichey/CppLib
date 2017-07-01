@@ -1,64 +1,44 @@
-#
-# Project files
-#
-EXE = MySDL
-SRC = MySDL.cpp kwrsdl.cpp kwrgame.cpp
 
-TESTEXE = test
-TESTSRC = test.cpp TestCase.cpp testkwrlib.cpp
+# Files
 
-OBJS = $(addprefix obj/, $(SRC:.cpp=.o))
-TESTOBJS = $(addprefix obj/, $(TESTSRC:.cpp=.o))
+KWR_SOURCE = kwrsdl.cpp kwrgame.cpp
+TEST_SOURCE = TestCase.cpp testkwrlib.cpp
 
-#
-# Directories
-#
-OBJDIR = obj
-EXEDIR = bin
-DEBUGDIR = debug
-DEPDIR = depends
-TESTDIR = test
+# C++ Compiler Options
 
-#
-# Compiler
-#
-CXX = g++
-INCLUDE_PATHS = -IC:\msys64\mingw64\include\SDL2
-LIBRARY_PATHS = -LC:\msys64\mingw64\lib
-# -Wl,-subsystem,windows gets rid of the console window
-CXXFLAGS = -Wl,-subsystem,windows -g -DDEBUG
-LINKER_FLAGS = -lmingw32 -lSDL2main -lSDL2
-DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
+INCLUDE_PATH = -IC:\msys64\mingw64\include\SDL2
+GENERATE_DEPENDENCY_RULES = -MMD
+DEBUGGING = -g -D DEBUG
+CPPFLAGS = $(INCLUDE_PATH) $(GENERATE_DEPENDENCY_RULES)
+CXXFLAGS = $(DEBUGGING) 
 
-POSTCOMPILE = @mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@
+# Linker Options
 
-#
-# Build target rules
-#
+LIBRARY_PATH = -LC:\msys64\mingw64\lib
+WINDOWS_SUBSYS = -Wl,-subsystem,windows
+LDFLAGS = $(LIBRARY_PATH) $(WINDOWS_SUBSYS)
+LDLIBS = -lmingw32 -lSDL2main -lSDL2
 
-all: exe_target
+# Targets
 
-run: all
-	cd $(EXEDIR); ./$(EXE)
+all: test run
 
-test: test_target
-	cd $(EXEDIR); ./$(TESTEXE)
+run: MySDL
+	./MySDL.exe
 
-exe_target: $(OBJS)
-	$(CXX) -o $(EXEDIR)/$(EXE) $^ $(LIBRARY_PATHS) $(CXXFLAGS) $(LINKER_FLAGS)
+test: TestKwr
+	./TestKwr.exe
 
-test_target: $(OBJS) $(TESTOBJS)
-	$(CXX) -o $(EXEDIR)/$(TESTEXE) $^ $(LIBRARY_PATHS) $(CXXFLAGS) $(LINKER_FLAGS)
+MySDL: $(KWR_SOURCE:.cpp=.o)
 
-$(OBJDIR)/%.o: %.cpp $(DEPDIR)/%.d
-	$(CXX) $(DEPFLAGS) $(INCLUDE_PATHS) $(CXXFLAGS) -c -o $@ $<
-	$(POSTCOMPILE)
+TestKwr: $(TEST_SOURCE:.cpp=.o)
 
 clean:
-	rm -f $(OBJS) $(TESTOBJS) $(EXEDIR)/$(EXE) $(EXEDIR)/$(TESTEXE)
+	rm -f *.exe *.o *.d
 
-$(DEPDIR)/%.d: ;
-.PRECIOUS: $(DEPDIR)/%.d
+.PHONY: clean all run test
 
-include $(wildcard $(patsubst %,$(DEPDIR)/%.d,$(basename $(SRCS))))
+# Include the .d dependency files
+
+include $(wildcard $(SRCS:.c=.d))
 

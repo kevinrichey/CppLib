@@ -18,8 +18,6 @@ class MyGame : public GameDriver
       virtual void Render();
    private:
       Sprite hero;
-      int dx;
-      int dy;
       Random32 random;
       Sprite goblin;
       Sprite bluegoblin;
@@ -27,16 +25,16 @@ class MyGame : public GameDriver
 
 MyGame::MyGame()
    :
-      hero(renderer, "HeroFace.bmp"),
-      dx(0), dy(0),
-      goblin(renderer, "GoblinFace.bmp"),
-      bluegoblin(renderer, "BlueGoblinFace.bmp"),
+      hero(renderer, "bin/HeroFace.bmp"),
+      goblin(renderer, "bin/GoblinFace.bmp"),
+      bluegoblin(renderer, "bin/BlueGoblinFace.bmp"),
       random((uint32_t)time(NULL))
 {
 }
 
 void MyGame::Setup()
 {
+   hero.MoveTo( random % 600, random % 460);
    goblin.MoveTo( random % 600, random % 460);
    bluegoblin.MoveTo(random % 600, random % 460);
 }
@@ -56,27 +54,29 @@ void MyGame::HandleEvent(const SDL_Event& e)
       switch( e.key.keysym.sym )
       {
          case SDLK_LEFT:
-            dx = -dir;
+            hero.SetVelocityX(-dir);
             break;
 
          case SDLK_RIGHT:
-            dx = dir;
+            hero.SetVelocityX(dir);
             break;
 
          case SDLK_UP:
-            dy = -dir;
+            hero.SetVelocityY(-dir);
             break;
 
          case SDLK_DOWN:
-            dy = dir;
+            hero.SetVelocityY(dir);
             break;
       }
    }
+
 }
 
 void MyGame::Update()
 {
-   hero.Move(dx, dy);
+   if (!hero.WouldHit(goblin))
+      hero.Move();
 }
 
 void MyGame::Render()
@@ -86,13 +86,12 @@ void MyGame::Render()
    bluegoblin.Draw(renderer);
 }
 
-int main( int argc, char* args[] ) //{{{1
+
+int main( int argc, char* args[] )
 {
    MyGame driver;
    driver.Run();
    return 0;
 }
-
-// }}}1
 
 // vim: foldmethod=marker
