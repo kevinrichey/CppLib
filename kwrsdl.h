@@ -40,6 +40,7 @@ class Renderer : NonCopyable //{{{1
    public:
       explicit Renderer(Window& window);
       operator SDL_Renderer*() { return renderer; }
+      void SetColor(const SDL_Color& color);
       ~Renderer() throw();
    private:
       SDL_Renderer* renderer;

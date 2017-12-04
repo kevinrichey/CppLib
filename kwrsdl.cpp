@@ -53,6 +53,11 @@ Renderer::Renderer(Window& window)
    if( renderer == NULL ) throw SDLError();
 }
 
+void Renderer::SetColor(const SDL_Color& color)
+{
+   SDL_SetRenderDrawColor( renderer, color.r, color.g, color.b, color.a );
+}
+
 Renderer::~Renderer() throw()
 {
    SDL_DestroyRenderer( renderer );
@@ -81,3 +86,4 @@ Texture::~Texture()
 
 } //}}}1
 
+// vim: foldmethod=marker

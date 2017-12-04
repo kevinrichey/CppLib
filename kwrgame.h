@@ -41,7 +41,8 @@ class Sprite //{{{2
 class GameDriver //{{{2
 {
    public:
-      explicit GameDriver();
+      explicit GameDriver(const SDL_Color &bg);
+      explicit GameDriver(unsigned w, unsigned h, const SDL_Color &bg);
 
       void Start();
       void Run();
@@ -50,21 +51,24 @@ class GameDriver //{{{2
       virtual void Setup();
       virtual void HandleEvent(const SDL_Event& event);
       virtual void Update();
+      virtual void Clear();
       virtual void Render();
 
    private:
       SDLInitialize sdlInit;
       bool running;
+      SDL_Color background;
 
    protected:
       Window window;
       Renderer renderer;
 };
 
-class SimpleDrawWindow : public GameDriver //{{{1
+class SimpleDrawWindow : public GameDriver //{{{2
 {
    public:
       SimpleDrawWindow();
+      SimpleDrawWindow(unsigned w, unsigned h, const SDL_Color &bg);
       virtual void Setup();
       virtual void HandleEvent(const SDL_Event& event);
       virtual void Update();

@@ -1,8 +1,8 @@
 
 # Files
 
-KWR_SOURCE = kwrsdl.cpp kwrgame.cpp
-TEST_SOURCE = TestCase.cpp testkwrlib.cpp
+KWR_SOURCE = kwrsdl.cpp kwrgame.cpp kwrlib.cpp
+TEST_SOURCE = TestCase.cpp testkwrlib.cpp TestKwrGame.cpp
 
 # C++ Compiler Options
 
@@ -29,9 +29,21 @@ run: MySDL
 test: TestKwr
 	./TestKwr.exe
 
+noise: NoiseTest
+	./NoiseTest.exe
+
+spline: DrawSpline
+	./DrawSpline.exe
+
 MySDL: $(KWR_SOURCE:.cpp=.o)
 
-TestKwr: $(TEST_SOURCE:.cpp=.o)
+TestKwr: $(TEST_SOURCE:.cpp=.o) $(KWR_SOURCE:.cpp=.o)
+
+NoiseTest: $(KWR_SOURCE:.cpp=.o)
+
+SplineTest: $(KWR_SOURCE:.cpp=.o)
+
+DrawSpline: $(KWR_SOURCE:.cpp=.o)
 
 clean:
 	rm -f *.exe *.o *.d

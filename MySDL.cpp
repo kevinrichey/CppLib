@@ -25,6 +25,7 @@ class MyGame : public GameDriver
 
 MyGame::MyGame()
    :
+      GameDriver( SDL_Color { 0, 100, 0, 0 } ),
       hero(renderer, "bin/HeroFace.bmp"),
       goblin(renderer, "bin/GoblinFace.bmp"),
       bluegoblin(renderer, "bin/BlueGoblinFace.bmp"),
@@ -75,7 +76,7 @@ void MyGame::HandleEvent(const SDL_Event& e)
 
 void MyGame::Update()
 {
-   if (!hero.WouldHit(goblin))
+   if (!hero.WouldHit(goblin) && !hero.WouldHit(bluegoblin))
       hero.Move();
 }
 

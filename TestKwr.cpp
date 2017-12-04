@@ -1,5 +1,7 @@
 #include <cstdio>
 #include "TestCase.h"
+#include <iostream>
+#include "kwrlib.h"
 
 using namespace std;
 using namespace kwr;
@@ -10,3 +12,4 @@ int main()
 	return 0;
 }
 
+// vim: foldmethod=marker

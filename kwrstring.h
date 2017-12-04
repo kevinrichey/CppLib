@@ -7,7 +7,7 @@ namespace kwr
 	{
 		char* data;
 
-		public:
+	public:
 		explicit String(const char* s);
 		String(const String& other);
 		

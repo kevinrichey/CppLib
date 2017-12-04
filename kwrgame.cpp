@@ -6,6 +6,11 @@ namespace kwr {  //{{{1
 
 //{{{2 HitBox
 
+HitBox HitBox::MovedBy(int x, int y) const
+{
+   return HitBox( SDL_Rect { Left()+x, Top()+y, Width(), Height() } );
+}
+
 bool HitBox::CollidesWith(const HitBox& target) const
 {
    return 
@@ -13,11 +18,6 @@ bool HitBox::CollidesWith(const HitBox& target) const
          Right()  < target.Left()   ||
          Top()    > target.Bottom() ||
          Bottom() < target.Top() );
-}
-
-HitBox HitBox::MovedBy(int x, int y) const
-{
-   return HitBox( SDL_Rect { Left()+x, Top()+y, Width(), Height() } );
 }
 
 //{{{2  Sprite class
@@ -74,11 +74,21 @@ Sprite::~Sprite() throw()
 
 //{{{2  GameDriver class
 
-GameDriver::GameDriver()
+GameDriver::GameDriver(const SDL_Color &bg)
    :
       window(640, 480, "Hello World"),
       renderer(window),
-      running(false)
+      running(false),
+      background(bg)
+{
+}
+
+GameDriver::GameDriver(unsigned width, unsigned height, const SDL_Color &bg)
+   :
+      window(width, height, "Hello World"),
+      renderer(window),
+      running(false),
+      background(bg)
 {
 }
 
@@ -101,10 +111,7 @@ void GameDriver::Run()
             HandleEvent(e);
          
          Update();
-
-         SDL_SetRenderDrawColor( renderer, 0x00, 100, 0x00, 0xFF );        
-         SDL_RenderClear(renderer);
-
+         Clear();
          Render();
          
          SDL_RenderPresent( renderer );
@@ -128,6 +135,16 @@ void GameDriver::Setup()
 
 void GameDriver::HandleEvent(const SDL_Event& event)
 {
+   if( event.type == SDL_QUIT )
+   {
+      Stop();
+   }
+}
+
+void GameDriver::Clear()
+{
+   renderer.SetColor(background);
+   SDL_RenderClear(renderer);
 }
 
 void GameDriver::Render()
@@ -141,6 +158,12 @@ void GameDriver::Update()
 //{{{2  SimpleDrawWindow class
 
 SimpleDrawWindow::SimpleDrawWindow()
+   : GameDriver( SDL_Color { 0,0,0,0 } )
+{
+}
+
+SimpleDrawWindow::SimpleDrawWindow(unsigned width, unsigned height, const SDL_Color &bg)
+   : GameDriver(width, height, bg)
 {
 }
 
