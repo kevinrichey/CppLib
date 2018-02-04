@@ -6,224 +6,207 @@
 using namespace kwr;
 using namespace std;
 
+
 static const SDL_Color BlackOpaque = { 0,0,0,SDL_ALPHA_OPAQUE};
 
-class LatticeNoise //{{{2
+class ValueNoise
 {
    public:
-      static const unsigned size;
-      static const unsigned mask;
-      static const unsigned min;
-      static const unsigned max;
+      static const size_t size = 256;
+      static const unsigned mask = 0xFF;
 
-      LatticeNoise();
-      unsigned operator()(unsigned x, unsigned y);
-   
+      ValueNoise(unsigned seed=100);
+      double Lattice(unsigned x, unsigned y);
+      double noise(double u, double v);
+
    private:
-      Array<unsigned> lattice;
+      RandomDouble randomizer { 324058231 };
+      Array<unsigned> lattice { Range<>(0,255) };
+      Array<double> valueTable { Times(size, randomizer) };
 };
 
-const unsigned LatticeNoise::size = 256;
-const unsigned LatticeNoise::mask = 0xFF;
-const unsigned LatticeNoise::min  = 0;
-const unsigned LatticeNoise::max  = 255;
-
-LatticeNoise::LatticeNoise()
-   : lattice(size)
+ValueNoise::ValueNoise(unsigned seed) 
 {
-   lattice = count(0);
-   lattice.shuffle();
+   RandomUInt random(seed);
+   lattice.shuffle(random);
 }
 
-unsigned LatticeNoise::operator()(unsigned x, unsigned y) 
+double ValueNoise::Lattice(unsigned x, unsigned y) 
 {
-   return lattice[ (x + lattice[y&mask]) & mask ];
+   return valueTable[ lattice[ (x + lattice[y&mask]) & mask ] ];
 }
 
-class ValueNoise //{{{2
+double ValueNoise::noise(double x, double y) 
+{
+   int u0 = x;
+   int v0 = y;
+   int u1 = x + 1;
+   int v1 = y + 1;
+
+   double uf = sCurve(x - (double)u0);
+   double vf = sCurve(y - (double)v0);
+
+   double tl = Lattice(u0, v0);
+   double tr = Lattice(u1, v0);
+   double tm = lerp(tl, tr, uf);
+
+   double bl = Lattice(u0, v1);
+   double br = Lattice(u1, v1);
+   double bm = lerp(bl, br, uf);
+
+   return lerp(tm, bm, vf);
+}
+
+class FractalNoise 
 {
    public:
-      static const unsigned size = 256;
+      FractalNoise(double a, double b, unsigned o, ValueNoise* vn) 
+         : alpha(a), beta(b), octaves(o), value(vn)
+      {}
 
-      ValueNoise();
-      double operator()(unsigned x, unsigned y);
+      double noise(double x, double y);
 
    private:
-      LatticeNoise lattice;
-      Array<double> valueTable;
+      double alpha, beta;
+      unsigned octaves;
+      ValueNoise* value;
 };
 
-ValueNoise::ValueNoise()
-   : valueTable(size)
+double FractalNoise::noise(double x, double y) 
 {
-   valueTable = RandomIterator<RandomDouble>();
+   double result = 0.0;
+   double scale = 1.0;
+
+   for(int i = 0; i < octaves; i++)
+   {
+      result += value->noise(x, y) / scale;
+      scale *= alpha;
+      x *= beta;
+      y *= beta;
+   }
+
+   return result;
 }
 
-double ValueNoise::operator()(unsigned x, unsigned y)
-{
-   return valueTable[lattice(x,y)];
-}
-
-class NoiseWindow : public SimpleDrawWindow //{{{2
+class NoiseWindow : public SimpleDrawWindow 
 {
    public:
       NoiseWindow();
       virtual void Setup();
       virtual void Render();
-      void DrawNoise(int left, int top, double (*interp)(double, double, double));
-      void DrawNoiseSplerp(int left, int top);
-      void Perlin(const SDL_Rect &drawRect, uint32_t (NoiseWindow::*Interp)(uint32_t, uint32_t, double) );
+      virtual void Clear() {};
+      void DrawNoise(double scale);
+      void DrawNoise3D(double scale);
    private:
-      LatticeNoise lattice;
       ValueNoise value;
+      FractalNoise fractal;
 
-      uint32_t Ceiling(uint32_t a, uint32_t b, double f);
 };
 
-NoiseWindow::NoiseWindow() //{{{3
-   : SimpleDrawWindow(900, 600, BlackOpaque)
+NoiseWindow::NoiseWindow() 
+   : 
+      SimpleDrawWindow(600, 600, BlackOpaque), 
+      value(200),
+      fractal(2, 1.5, 4, &value)
 {
 }
 
-void NoiseWindow::Setup() //{{{3
+void NoiseWindow::Setup() 
 {
 }
 
-void NoiseWindow::Render() //{{{3
+void NoiseWindow::Render() 
 {
-   DrawNoise(0, 0, &lerp );
-   DrawNoise(300, 0, &coserp);
-   DrawNoiseSplerp(600, 0);
-}
-
-void NoiseWindow::DrawNoise(int left, int top, double (*interp)(double, double, double)) //{{{3
-{
-   double du = 0.04;
-   double dv = 0.04;
-
-   int right = left + 256;
-   int bottom = top + 256;
-
-   double u = 0.0;
-   for(int x = left; x < right; x++)
+   static double scale = 0.02;
+   static bool draw = true;
+   if (draw) 
    {
-      double v = 0.0;
-      for(int y = top; y < bottom; y++)
-      {
-         unsigned ui = static_cast<unsigned>(u);
-         unsigned vi = static_cast<unsigned>(v);
-         double uf = u - (double)ui;
-         double vf = v - (double)vi;
-
-         double tl = value(ui,vi);
-         double tr = value(ui+1, vi);
-         double bl = value(ui, vi+1);
-         double br = value(ui+1, vi+1);
-
-         uint8_t gray = static_cast<uint8_t>(
-            (interp( 
-               interp(tl, tr, uf),  
-               interp(bl, br, uf), 
-               vf)) * 255);
-
-         renderer.SetColor( SDL_Color { gray, gray, gray, SDL_ALPHA_OPAQUE } );
-         SDL_RenderDrawPoint(renderer, x, y);
-
-         v += dv;
-      }
-      u += du;
+      //DrawNoise3D(scale);
+      DrawNoise(scale);
+      draw = false;
    }
 }
 
-void NoiseWindow::DrawNoiseSplerp(int left, int top) //{{{3
+void NoiseWindow::DrawNoise(double scale) 
 {
-   double du = 0.04;
-   double dv = 0.04;
-
-   int right = left + 256;
-   int bottom = top + 256;
-
-   double u = 0.0;
-   for(int x = left; x < right; x++)
+   double v = 0.0;
+   for(int y = 0.0; y < 600; y++, v += scale)
    {
-      double v = 0.0;
-      for(int y = top; y < bottom; y++)
+      double u = 0.0;
+      for(int x = 0; x < 600; x++, u += scale)
       {
-         unsigned ui = static_cast<unsigned>(u);
-         unsigned vi = static_cast<unsigned>(v);
-         double uf = u - (double)ui;
-         double vf = v - (double)vi;
+         //double g = value.noise(u, v);
+         double g = fractal.noise(u, v) * 0.7; 
+         if(g > 1.0) g = 1.0;
+         uint8_t shade = (uint8_t)(g * 255);
+         SDL_Color color { shade, shade, shade, SDL_ALPHA_OPAQUE };
+         renderer.SetColor(color); 
+         SDL_RenderDrawPoint(renderer, x, y);
+      }
+   }
+}
 
-         double xknots[4], yknots[4];
+void NoiseWindow::DrawNoise3D(double scale) 
+{
+   double screen_scale = 600.0 / 2.0;
+   double sea = 0.2;
+   double grass = sea + 0.1;
+   double mountain = grass + 0.3; 
 
-         for(int j = -1; j <= 2; j++)
+   double v = 0.0;
+   for(double wy = 3; wy >= 1; wy-=0.0022)
+   {
+      double u = 0.0;
+      for(double wx = -1; wx <= 1; wx+=0.0022)
+      {
+         double g = fractal.noise(u, v);
+
+         double elev = max(g/4, sea);
+         double wz = elev - 1.0;
+
+         double vx = wx;
+         double vy = wy + 0.1;
+         double vz = wz * 1.1;
+
+         int sx  = (1.0 + (vx / vy)) * screen_scale;
+         int sy  = (1.0 - (vz / vy)) * screen_scale;
+         int sy2 = (1.0 - (-1 / vy)) * screen_scale;
+
+         uint8_t gray = static_cast<uint8_t>( clamp(0, 255, g * 128) );
+
+         if(elev < sea+0.000001)
          {
-            for(int i = -1; i <= 2; i++)
-            {
-               xknots[i+1] = value(ui+i, vi+j);
-            }
-            yknots[j+1] = spline(uf, 4, xknots);
+            renderer.SetColor( SDL_Color { 0, 0, 200, SDL_ALPHA_OPAQUE } );
+         }
+         else if(elev < sea+0.02)
+         {
+            renderer.SetColor( SDL_Color { 200, 200, 0, SDL_ALPHA_OPAQUE } );
+         }
+         else if(elev < grass)
+         {
+            double shade = 1.0 - (elev - sea) * 5;
+            renderer.SetColor( SDL_Color { 0, (uint8_t)(shade * 255), 0, SDL_ALPHA_OPAQUE } );
+         }
+         else //if (elev < mountain)
+         {
+            double shade = .4 + (elev - grass) * 2;
+            uint8_t c = (uint8_t)(shade * 255.0);
+            renderer.SetColor( SDL_Color { c, c, c, SDL_ALPHA_OPAQUE } );
          }
 
-         double g = spline(vf, 4, yknots);
-         if(g > 1.0) g = 0.99999;
-         if(g < 0.0) g = 0.00001;
-         uint8_t gray = static_cast<uint8_t>(g * 255);
+         SDL_RenderDrawLine(renderer, sx, sy, sx, sy2);
 
-         renderer.SetColor( SDL_Color { gray, gray, gray, SDL_ALPHA_OPAQUE } );
-         SDL_RenderDrawPoint(renderer, x, y);
-
-         v += dv;
+         u += scale;
       }
-      u += du;
-   }
-}
-void NoiseWindow::Perlin(const SDL_Rect &rect, uint32_t (NoiseWindow::*Interp)(uint32_t, uint32_t, double) ) //{{{3
-{
-   double scale = 32.0;
-   for(int x=0; x<rect.w; x++)
-   {
-      for(int y=0; y<rect.h; y++)
-      {
-         uint64_t total = 0;
-
-         for(int i=0; i<5; i++)
-         {
-            auto freq = pow(2.0, i);
-            auto amp = pow(0.25, i);
-
-            double xf = (double)x / scale * freq;
-            double yf = (double)y / scale * freq;
-            unsigned xi = static_cast<unsigned>(xf);
-            unsigned yi = static_cast<unsigned>(yf);
-            double frac_x = xf - (double)xi;
-            double frac_y = yf - (double)yi;
-
-            total += 
-               (this->*Interp)( 
-                     (this->*Interp)(lattice(yi, xi), lattice(yi, xi+1), frac_x),
-                     (this->*Interp)(lattice(yi+1, xi), lattice(yi+1, xi+1), frac_x),
-                     frac_y) * amp;
-         }
-
-         uint8_t gray = total >> 24;
-
-         renderer.SetColor( SDL_Color { gray, gray, gray, SDL_ALPHA_OPAQUE } );
-         SDL_RenderDrawPoint(renderer, x+rect.x, y+rect.y);
-      }
+      v += scale;
    }
 }
 
-uint32_t NoiseWindow::Ceiling(uint32_t a, uint32_t b, double f) //{{{3
-{
-   return a;
-}
-
-int main( int argc, char* args[] ) //{{{2
+int main( int argc, char* args[] ) 
 {
    NoiseWindow noiseWindow;
    noiseWindow.Run();
    return 0;
 }
 
-// vim: foldmethod=marker
+// vim: foldmethod=syntax

@@ -8,7 +8,11 @@ using namespace kwr;
 
 int main()
 {
-	TestCase::RunAll();
+   cout 
+      << "Test Cases: " 
+      << TestCase::RunAll()
+      << endl;
+
 	return 0;
 }
 

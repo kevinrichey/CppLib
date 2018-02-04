@@ -4,6 +4,7 @@
 
 namespace kwr
 {
+
 	TestCase*& TestCase::Tests()
 	{
 		static TestCase* tests = NULL;
@@ -24,12 +25,17 @@ namespace kwr
 		}
 	}
 
-	void TestCase::RunAll()
+	int TestCase::RunAll()
 	{
+      int count = 0;
+
 		for(TestCase* test=Tests(); test; test=test->next)
 		{
+         count++;
 			test->Run();
 		}
+
+      return count;
 	}
 
 }

@@ -4,21 +4,19 @@
 
 namespace kwr {
 
-//{{{1 step, pulse, clamp, smoothstep, spline
-
 const double pi = 3.1415927; 
 
-double step(double a, double x) //{{{2
+double step(double a, double x) 
 {
    return (double)( x >= a );
 }
 
-double pulse(double a, double b, double x) //{{{2
+double pulse(double a, double b, double x) 
 {
    return step(a, x) - step(b, x);
 }
 
-double clamp(double a, double b, double x) //{{{2
+double clamp(double a, double b, double x) 
 {
    return 
       (x < a) ? a :
@@ -26,16 +24,14 @@ double clamp(double a, double b, double x) //{{{2
       x;
 }
 
-double smoothstep(double a, double b, double x) //{{{2
+double smoothstep(double a, double b, double x) 
 {
    if(x < a)  return 0.0;
    if(x >= b) return 1.0;
 
    x = (x - a) / (b - a);
-   return (x*x * (3 - 2*x));
+   return (x*x * (3.0 - 2.0*x));
 }
-
-//{{{2 spline
 
 /* Coefficients of basis matrix. */
 #define CR00     -0.5
@@ -87,10 +83,8 @@ double spline(double x, double nknots, double *knot)
     return ((c3*x + c2)*x + c1)*x + c0;
 }
 
-//{{{1 Random
-const double RandomDouble::divisor = (double)RandomDouble::mask;
+uint32_t RandomUInt::xorseed = 2463534242;
 
-//}}}1
 } // kwr
 
-// vim: foldmethod=marker
+// vim: foldmethod=syntax:

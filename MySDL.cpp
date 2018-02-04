@@ -18,7 +18,6 @@ class MyGame : public GameDriver
       virtual void Render();
    private:
       Sprite hero;
-      Random32 random;
       Sprite goblin;
       Sprite bluegoblin;
 };
@@ -28,16 +27,17 @@ MyGame::MyGame()
       GameDriver( SDL_Color { 0, 100, 0, 0 } ),
       hero(renderer, "bin/HeroFace.bmp"),
       goblin(renderer, "bin/GoblinFace.bmp"),
-      bluegoblin(renderer, "bin/BlueGoblinFace.bmp"),
-      random((uint32_t)time(NULL))
+      bluegoblin(renderer, "bin/BlueGoblinFace.bmp")
 {
 }
 
 void MyGame::Setup()
 {
-   hero.MoveTo( random % 600, random % 460);
-   goblin.MoveTo( random % 600, random % 460);
-   bluegoblin.MoveTo(random % 600, random % 460);
+   int width = 0, height = 0;
+   SDL_GetRendererOutputSize(renderer, &width, &height);
+   hero.MoveTo(width/2, height/2);
+   goblin.MoveTo(width/4, height/4);
+   bluegoblin.MoveTo(width-width/4, height/4);
 }
 
 void MyGame::HandleEvent(const SDL_Event& e)

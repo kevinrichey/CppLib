@@ -5,18 +5,22 @@ namespace kwr {
 
 class TestCase
 {
-   const char* name;
-   TestCase* next;
+   public: 
 
-   static TestCase*& Tests();
+      static int RunAll();
+      void Assert(bool result, const char* expression, const char* filename, int lineNum) const;
 
    protected: 
-   TestCase(const char* testName);
-   virtual void Run() const =0;
 
-   public: 
-   static void RunAll();
-   void Assert(bool result, const char* expression, const char* filename, int lineNum) const;
+      TestCase(const char* testName);
+      virtual void Run() const =0;
+
+   private:
+
+      const char* name;
+      TestCase* next;
+
+      static TestCase*& Tests();
 };
 
 #define kwr_TESTCASE(testName) \

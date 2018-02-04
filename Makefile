@@ -21,7 +21,7 @@ LDLIBS = -lmingw32 -lSDL2main -lSDL2
 
 # Targets
 
-all: test run
+all: test tags
 
 run: MySDL
 	./MySDL.exe
@@ -35,6 +35,13 @@ noise: NoiseTest
 spline: DrawSpline
 	./DrawSpline.exe
 
+rng: rngtest
+	./rngtest.exe
+
+tags: $(KWR_SOURCE) $(TEST_SOURCE)
+	ctags -R .
+	cscope -R -b
+
 MySDL: $(KWR_SOURCE:.cpp=.o)
 
 TestKwr: $(TEST_SOURCE:.cpp=.o) $(KWR_SOURCE:.cpp=.o)
@@ -42,6 +49,8 @@ TestKwr: $(TEST_SOURCE:.cpp=.o) $(KWR_SOURCE:.cpp=.o)
 NoiseTest: $(KWR_SOURCE:.cpp=.o)
 
 SplineTest: $(KWR_SOURCE:.cpp=.o)
+
+rngtest: $(KWR_SOURCE:.cpp=.o)
 
 DrawSpline: $(KWR_SOURCE:.cpp=.o)
 
@@ -52,5 +61,5 @@ clean:
 
 # Include the .d dependency files
 
-include $(wildcard $(SRCS:.c=.d))
-
+include $(wildcard $(KWR_SOURCE:.cpp=.d))
+include $(wildcard $(TEST_SOURCE:.cpp=.d))

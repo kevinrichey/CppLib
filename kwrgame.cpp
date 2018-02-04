@@ -1,10 +1,6 @@
-// 
-
 #include "kwrgame.h"
 
-namespace kwr {  //{{{1
-
-//{{{2 HitBox
+namespace kwr {
 
 HitBox HitBox::MovedBy(int x, int y) const
 {
@@ -20,7 +16,8 @@ bool HitBox::CollidesWith(const HitBox& target) const
          Bottom() < target.Top() );
 }
 
-//{{{2  Sprite class
+//---------------------------------------------------------------------- 
+//       Sprite class
 
 Sprite::Sprite(Renderer& renderer, const BitmapSurface& bitmap)
    :
@@ -72,7 +69,8 @@ Sprite::~Sprite() throw()
 {
 }
 
-//{{{2  GameDriver class
+//----------------------------------------------------------------------
+//       GameDriver class
 
 GameDriver::GameDriver(const SDL_Color &bg)
    :
@@ -155,7 +153,8 @@ void GameDriver::Update()
 {
 }
 
-//{{{2  SimpleDrawWindow class
+//----------------------------------------------------------------------
+//       SimpleDrawWindow class
 
 SimpleDrawWindow::SimpleDrawWindow()
    : GameDriver( SDL_Color { 0,0,0,0 } )
@@ -185,4 +184,4 @@ void SimpleDrawWindow::Update()
 
 }  //}}}1
 
-// vim: foldmethod=marker:
+// vim: foldmethod=syntax:
