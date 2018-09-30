@@ -1,20 +1,111 @@
 #include <cstring>
 #include <iostream>
 #include "kwrlib.h"
+#include "kwrrnd.h"
 #include "TestCase.h"
 
 using namespace std;
-using namespace kwr;
 
-kwr_TESTCASE(SourceLine)
+namespace kwr {
+
+kwr_TestCase(kwr_Stringize)
 {
-	auto source = kwr_SourceLine;
-	kwr_TEST(source.linenumber == __LINE__-1);
-	kwr_TEST(!strcmp(source.filename, "testkwrlib.cpp"));
-   kwr_TEST(!strcmp(KWR_SOURCE_LINE, "testkwrlib.cpp:14"));
+  kwr_TestStr(kwr_Stringize(XYZZY), "XYZZY");
 }
 
-kwr_TESTCASE(lerp)
+kwr_TestCase(kwr_Concat)
+{
+  int kwr_Concat(xyzzy,123) = 123;
+  auto valname = kwr_ValName(xyzzy123);
+  kwr_TestStr(valname.name, "xyzzy123");
+  kwr_Test(valname.value == 123);
+}
+
+kwr_TestCase(ValName)
+{
+  int x = 10;
+
+  auto xvar = kwr_ValName(x);
+  kwr_Test(xvar.value == 10);
+  kwr_TestStr(xvar.name, "x");
+
+  auto bvar = kwr_ValName(x + 1 < 100);
+  kwr_Test(bvar.value == true);
+  kwr_TestStr(bvar.name, "x + 1 < 100");
+
+  auto svar = kwr_ValName("Test string ValName");
+  kwr_TestStr(svar.value, "Test string ValName");
+  kwr_TestStr(svar.name, "\"Test string ValName\"");
+}
+
+kwr_TestCase(NumRange)
+{
+  Range<int> numrange(1, 5);
+  kwr_Test(numrange.size() == 5);
+  kwr_Test(numrange.get() == 1);
+
+  numrange.pop();
+  kwr_Test(numrange.size() == 4);
+  kwr_Test(numrange.get() == 2);
+
+  numrange.pop();
+  numrange.pop();
+  numrange.pop();
+  kwr_Test(numrange.size() == 1);
+  kwr_Test(numrange.get() == 5);
+
+  numrange.pop();
+  kwr_Test(numrange.size() == 0);
+}
+
+kwr_TestCase(MemRange)
+{
+  int ints[5] { 10, 20, 30, 40, 50 };
+  Range<int*> memrange(ints, 5);
+
+  kwr_Test(memrange.size() == 5);
+  kwr_Test(memrange.get() == 10);
+  kwr_Test(memrange.more());
+
+  memrange.pop();
+  kwr_Test(memrange.size() == 4);
+  kwr_Test(memrange.get() == 20);
+
+  memrange.pop();
+  memrange.pop();
+  memrange.pop();
+  kwr_Test(memrange.size() == 1);
+  kwr_Test(memrange.get() == 50);
+
+  memrange.pop();
+  kwr_Test(memrange.size() == 0);
+
+
+  int ints2[5] { 1, 2, 3, 4, 5 };
+
+  Range<int*> range2(ints2, 5);
+  range2.pop(2);
+  kwr_Test(range2.size() == 3);
+  kwr_Test(range2.get() == 3);
+  range2.pop(4);
+  kwr_Test(range2.size() == 0);
+
+  Range<int*> range3(ints2, 5);
+  range3.pop(-3);
+  kwr_Test(range3.size() == 2);
+  kwr_Test(range3.get() == 1);
+  range3.pop(-4);
+  kwr_Test(range3.size() == 0);
+}
+
+kwr_TestCase(SourceLine)
+{
+    SourceLine source { kwr_SourceLine };
+    kwr_TestStr( source.filename, "testkwrlib.cpp" );
+    kwr_Test( source.line == __LINE__ - 2);
+}
+ 
+kwr_TestCase(lerp)
 {
    int a = 10, b = 20;
    kwr_TEST( lerp(a, b, 0.0) == 10 );
@@ -31,7 +122,7 @@ kwr_TESTCASE(lerp)
    kwr_TEST( lerp(x, y, 1.0) == 5.5 );
 }
 
-kwr_TESTCASE(step)
+kwr_TestCase(step)
 {
    double a = 5;
    kwr_TEST( step(a, 0.0) == 0.0 );
@@ -40,7 +131,7 @@ kwr_TESTCASE(step)
    kwr_TEST( step(a, 6.0) == 1.0 );
 }
 
-kwr_TESTCASE(pulse)
+kwr_TestCase(pulse)
 {
    double a = 3.0, b = 6.0;
    kwr_TEST( pulse(a, b, 1.0) == 0.0 );
@@ -50,7 +141,7 @@ kwr_TESTCASE(pulse)
    kwr_TEST( pulse(a, b, 8.0) == 0.0 );
 }
 
-kwr_TESTCASE(clamp)
+kwr_TestCase(clamp)
 {
    double a = 4.0, b = 8.0;
    kwr_TEST( clamp(a, b, 2.0) == a );
@@ -60,7 +151,7 @@ kwr_TESTCASE(clamp)
    kwr_TEST( clamp(a, b, 9.0) == b );
 }
 
-kwr_TESTCASE(smoothstep)
+kwr_TestCase(smoothstep)
 {
    double a = 5.0, b = 7.0;
    kwr_TEST( smoothstep(a, b, 4.0) == 0.0 );
@@ -72,7 +163,7 @@ kwr_TESTCASE(smoothstep)
    kwr_TEST( smoothstep(a, b, 8.0) == 1.0 );
 }
 
-kwr_TESTCASE(XorShift)
+kwr_TestCase(XorShift)
 {
   // Generate the same sequence from the same seed
   XorShift<1,3,10> xorshift(1);
@@ -95,52 +186,33 @@ kwr_TESTCASE(XorShift)
   kwr_TEST(c() != d());
 }
 
-kwr_TESTCASE(Array)
+kwr_TestCase(FisherYatesInsideOut)
 {
-   Array<int> hundred( Range<>(1,100) );
+  auto size = 100;
+  int dest[size];
+
+  XorShift0 rand { 123456789 };
+  FisherYatesShuffler<XorShift0> shuffle(rand);
+  shuffle(from(1), Range<int*>(dest, dest+99));
+
+  int expected[size] { 
+    3, 95, 29, 75, 46, 85, 19, 16, 20, 59, 21, 71, 34, 61, 32, 43, 82, 22, 83, 2, 39, 14, 56, 87, 96,
+    94, 42, 65, 6, 69, 27, 86, 93, 37, 81, 30, 41, 78, 49, 92, 10, 84, 28, 8, 44, 79, 91, 88, 89, 98,
+    18, 60, 51, 68, 97, 11, 4, 55, 50, 15, 17, 70, 90, 66, 62, 57, 23, 77, 48, 5, 80, 53, 38, 76, 31,
+    73, 72, 64, 63, 52, 100, 99, 40, 36, 45, 35, 25, 33, 7, 9, 1, 13, 26, 58, 54, 12, 67, 47, 24, 74
+  };
+
+  for (int i = 0; i < size; ++i)
+    kwr_TEST( expected[i] == dest[i] );
+}
+
+kwr_TestCase(Array)
+{
+   Array<int> hundred( Range<int>(1,100) );
    kwr_TEST( hundred.size() == 100 );
    for(int i=0; i<100; i++)
       kwr_TEST(hundred[i] == i+1);
 }
-
-struct TimesCounter
-{
-   typedef int result_type;
-   int *count = 0;
-   int operator()()
-   {
-      return ++(*count);
-   }
-};
-
-kwr_TESTCASE(Times)
-{
-   int count = 0;
-   TimesCounter c { &count };
-   auto timer = Times(5, c);
-
-   kwr_TEST(timer.length() == 5);
-   for(; timer.length(); ++timer) *timer;
-   kwr_TEST(count == 5);
-}
-
-kwr_TESTCASE(TimesRandom)
-{
-  RandomDouble randomizer(1509797);
-
-  auto t = Times(10, randomizer); 
-	kwr_TEST(t.length() == 10 && abs(*t - 0.430444));  ++t;
-	kwr_TEST(t.length() ==  9 && abs(*t - 0.755587));  ++t;
-	kwr_TEST(t.length() ==  8 && abs(*t - 0.998875));  ++t;
-	kwr_TEST(t.length() ==  7 && abs(*t - 0.396148));  ++t;
-	kwr_TEST(t.length() ==  6 && abs(*t - 0.697454));  ++t;
-	kwr_TEST(t.length() ==  5 && abs(*t - 0.436028));  ++t;
-	kwr_TEST(t.length() ==  4 && abs(*t - 0.346031));  ++t;
-	kwr_TEST(t.length() ==  3 && abs(*t - 0.224874));  ++t;
-	kwr_TEST(t.length() ==  2 && abs(*t - 0.771649));  ++t;
-	kwr_TEST(t.length() ==  1 && abs(*t - 0.713165));  ++t;
-}
-
 
 //array of shuffled integers from 0 to 255
 //
@@ -157,7 +229,7 @@ kwr_TESTCASE(TimesRandom)
 //		randomize( Range ) -> random_generator<Range::type> { min; max; float next() }
 //		- for(int i=0; i<256; i++) array[i] = random(0.0, 1.0);
 
-kwr_TESTCASE(UniformDistribution)
+kwr_TestCase(UniformDistribution)
 {
   using std::cout;
   using std::endl;
@@ -175,7 +247,7 @@ kwr_TESTCASE(UniformDistribution)
 
 }
 
-kwr_TESTCASE(ArrayInitFromRange)
+kwr_TestCase(ArrayInitFromRange)
 {
   Array<int> numbers { from(0).to(255) };
 
@@ -183,86 +255,90 @@ kwr_TESTCASE(ArrayInitFromRange)
   kwr_TEST(size == 256);
   for (int i = 0; i < size; ++i)
     kwr_TEST(i == numbers[i]);
-
 }
 
-kwr_TESTCASE(FisherYatesInsideOut)
+kwr_TestCase(ArrayIndexOutOfRange)
 {
-  auto size = 100;
-  int dest[size];
+  Array<int> a (10);
 
-  XorShift0 rand { 123456789 };
-  FisherYatesShuffler<XorShift0> shuffle(rand);
-  shuffle(from(1), over(dest, 100));
+  a[0] = 1;
+  a[9] = 2;
 
-  int expected[size] { 
-    3, 95, 29, 75, 46, 85, 19, 16, 20, 59, 21, 71, 34, 61, 32, 43, 82, 22, 83, 2, 39, 14, 56, 87, 96,
-    94, 42, 65, 6, 69, 27, 86, 93, 37, 81, 30, 41, 78, 49, 92, 10, 84, 28, 8, 44, 79, 91, 88, 89, 98,
-    18, 60, 51, 68, 97, 11, 4, 55, 50, 15, 17, 70, 90, 66, 62, 57, 23, 77, 48, 5, 80, 53, 38, 76, 31,
-    73, 72, 64, 63, 52, 100, 99, 40, 36, 45, 35, 25, 33, 7, 9, 1, 13, 26, 58, 54, 12, 67, 47, 24, 74
-  };
-
-  for (int i = 0; i < size; ++i)
-    kwr_TEST( expected[i] == dest[i] );
-
-}
-
-class Doubler
-{
-  public:
-    template <typename S, typename D>
-    void operator()(S source, D dest)
-    {
-      while (dest.size()) {
-        dest.put( 2 * source.get() );
-        source.pop();
-        dest.pop();
-      }
-    }
-};
-
-kwr_TESTCASE(ArrayInitFromFunctor)
-{
-  Array<int> a { Doubler(), from(1).to(10) };
-
-  int expected[10] { 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 };
-  for (int i = 0; i < 10; ++i)
-    kwr_TEST( expected[i] == a[i] );
-}
-
-kwr_TESTCASE(RandomRange)
-{
-  XorShift0 rand { 98347259 };
-  RandomUniform uniform(500, 1000);
-  RandomRange<XorShift0, RandomUniform> randrange(rand, uniform, 100);
-
-  kwr_TEST(randrange.size() == 100);
-
-  uint32_t expected[100] 
-  {
-    514, 912, 890, 532, 753, 666, 906, 922, 542, 855, 
-    621, 778, 998, 742, 647, 924, 645, 945, 732, 647,
-    552, 670, 646, 927, 973, 902, 947, 532, 767, 968,
-    950, 841, 797, 674, 717, 989, 978, 541, 968, 567,
-    862, 892, 634, 601, 515, 667, 820, 766, 946, 837,
-    523, 900, 536, 620, 869, 793, 609, 522, 576, 821,
-    513, 748, 616, 563, 790, 976, 653, 704, 532, 650,
-    720, 506, 974, 926, 799, 550, 621, 651, 532, 844,
-    982, 787, 874, 912, 589, 719, 795, 966, 635, 601,
-    825, 882, 710, 966, 550, 775, 559, 799, 504, 910 
-  };
-  
-  uint32_t *i = expected;
-
-  while (randrange.size()) {
-    auto g = randrange.get();
-    kwr_TEST(500 <= g && g < 1000);
-    kwr_TEST(g == *i++);
-    kwr_TEST(g == randrange.get());
-    randrange.pop();
+  try {
+    //a[10];
+    //kwr_Fail("Exception not thrown.");
   }
-  std::cout << endl;
+  catch (Failure& f) {
+  }
+}
+
+kwr_TestCase(RequireFailureThrows)
+{
+    kwr_Checkpoint("RequireFailureThrows");
+    int reqline = __LINE__ + 1;
+    kwr_Assert( true );
+
+    try 
+    {
+        reqline = __LINE__ + 1;
+        kwr_Assert( false );
+        kwr_Fail("Exception not thrown.");
+    }
+    catch (Failure& f) {
+        kwr_TestStr(f.what(), "false");
+        kwr_TestStr(f.source().filename, "testkwrlib.cpp");
+        kwr_Test(f.source().line == reqline);
+    }
+    catch (...) {
+        kwr_FAIL("Wrong exception type.");
+    }
+}
+
+kwr_TestCase(kwrAssertFalse)
+{
+  try
+  {
+    kwr_Assert(false);
+  }
+  catch(Failure &f)
+  {
+    kwr_TestStr(f.what(), "false");
+  }
+}
+
+kwr_TestCase(kwrAssertEquals)
+{
+  try
+  {
+    int x = 1;
+    kwr_Assert(x == 0);
+    kwr_Fail("Exception not thrown");
+  }
+  catch (Failure &f)
+  {
+    kwr_TestStr( f.what(), "x == 0");
+  }
+}
+
+kwr_TestCase(KwrString)
+{
+  String sizedStr(100);
+  kwr_Test(sizedStr.size() == 100);
+
+  String copyStr("Copy this string.");
+  kwr_Test(copyStr.size() == 17);
+  kwr_TestStr(copyStr.getStr(), "Copy this string.");
+  
+  String a ("AAAAA");
+  String b ("BBB");
+  a.swap(b);
+  kwr_TestStr(a.getStr(), "BBB");
+  kwr_Test(a.size() == 3);
+  kwr_TestStr(b.getStr(), "AAAAA");
+  kwr_Test(b.size() == 5);
 
 }
 
-// vim: foldmethod=syntax
+
+} // kwr
+

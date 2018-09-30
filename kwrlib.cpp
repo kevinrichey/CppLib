@@ -1,10 +1,41 @@
 #include "kwrlib.h"
-#include <cmath>
 #include <cstdio>
+#include <iostream>
+#include <limits>
+#include <cmath>
 
 namespace kwr {
 
+void printError(const char* filename, int line, const char* label, const char* message)
+{
+  printf("%s:%d: %s: %s\n", filename, line, label, message);
+}
+
+Checkpoint* Checkpoint::top = nullptr;
+
+bool fail(SourceLine source, const char* label)
+{
+  throw Failure(source, label);
+  return false;
+}
+
+
 const double pi = 3.1415927; 
+
+double lerp(double a, double b, double f)
+{
+    return a + f * (b - a);
+}
+
+double coserp(double a, double b, double x)
+{
+    return lerp(a, b, (1.0L - std::cos(x*pi)) * 0.5L);
+}
+
+double sCurve(double x)
+{
+    return (x*x * (3.0 - 2.0*x));
+}
 
 double step(double a, double x) 
 {
@@ -83,8 +114,4 @@ double spline(double x, double nknots, double *knot)
     return ((c3*x + c2)*x + c1)*x + c0;
 }
 
-uint32_t RandomUInt::xorseed = 2463534242;
-
 } // kwr
-
-// vim: foldmethod=syntax:

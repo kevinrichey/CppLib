@@ -1,4 +1,5 @@
 #include "kwrlib.h"
+#include "kwrrnd.h"
 #include "kwrgame.h"
 #include <utility>
 #include <iostream>

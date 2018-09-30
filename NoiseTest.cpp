@@ -1,4 +1,5 @@
 #include "kwrlib.h"
+#include "kwrrnd.h"
 #include "kwrgame.h"
 #include <utility>
 #include <iostream>
@@ -11,24 +12,26 @@ static const SDL_Color BlackOpaque = { 0,0,0,SDL_ALPHA_OPAQUE};
 
 class ValueNoise
 {
-   public:
-      static const size_t size = 256;
-      static const unsigned mask = 0xFF;
+  public:
+    static const size_t size = 256;
+    static const unsigned mask = 0xFF;
 
-      ValueNoise(unsigned seed=100);
-      double Lattice(unsigned x, unsigned y);
-      double noise(double u, double v);
+    ValueNoise(unsigned seed=100);
+    double Lattice(unsigned x, unsigned y);
+    double noise(double u, double v);
 
-   private:
-      RandomDouble randomizer { 324058231 };
-      Array<unsigned> lattice { Range<>(0,255) };
-      Array<double> valueTable { Times(size, randomizer) };
+  private:
+    typedef ComplimentaryMultiplyWithCarry CMWC;
+    ComplimentaryMultiplyWithCarry cmwc { 90837492 };
+
+    Array<unsigned> lattice { size };
+    Array<double> valueTable { from(0).to(size), [&](int){ return RandomDouble()(cmwc); } };
 };
 
 ValueNoise::ValueNoise(unsigned seed) 
 {
-   RandomUInt random(seed);
-   lattice.shuffle(random);
+  FisherYatesShuffler<CMWC> shuffle { cmwc };
+  shuffle(from(0).to(lattice.size()), lattice.range());
 }
 
 double ValueNoise::Lattice(unsigned x, unsigned y) 

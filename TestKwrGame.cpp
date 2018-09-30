@@ -6,7 +6,7 @@
 using namespace std;
 using namespace kwr;
 
-kwr_TESTCASE(HitBox)
+kwr_TestCase(HitBox)
 {
    HitBox box;
    box.rect = { 10, 20, 30, 40 };
