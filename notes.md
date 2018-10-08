@@ -25,7 +25,7 @@ Code Style
 - Types (class, struct, etc): UpperCamelCase
 - Methods & functions: lowerCamelCase
 - Variables & objects: lowercase, lower_snake_case
-- Namespaces: abbreviated lowercase
+- Namespaces: abbreviated lowercase, 3-5 chars.
 - #define symbols: ns_UPPER_SNAKE_CASE (ns = namespace)
 - #define macros: ns_UpperCamelCase (ns = namespace)
 
@@ -88,7 +88,7 @@ Quality
 
 ## Primitives
 
-- SourceLine: source code filename & line # 
+- TracePoint: source location & trace info.
 - Watch: variable name & value at point in time
 - Level: volume of reporting (0. none/off, 1. low, 99. high)
 - Backtrace: report of recent trace points

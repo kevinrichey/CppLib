@@ -1,0 +1,55 @@
+"
+" C/C++ Code Standards
+"======================
+"
+"## Formatting, Indentation
+"
+" - Indentation:               4 spaces (shiftwidth), no tabs
+" - Namespace blocks:          no indent
+" - Base class & ctor inits:   2 spaces after ctor definition
+" - Scope declarations:        2 spaces after class {
+" - Class members:             4 spaces from margin
+" - Return types & templates:  no indent
+" - Unclosed parans:           align with first character
+" - Line continuations:        2 spaces
+" - No line breaks.
+" - No line wrapping.
+
+set cindent expandtab shiftwidth=4 cino=N-s,g.5s,h.5s,i.5s,+.5s,t0,(0
+set linebreak! wrap!
+
+" Navigation
+"=============
+
+set ignorecase                    " - Case insensitive search.
+set hlsearch                      " - Highlight search results.
+set foldenable foldmethod=syntax  " - Use syntax code folding.
+nnoremap <C-]> g<C-]>             " - C-] opens list if more than one match
+nmap <F2> :cn<CR>                 " - F2 = Next quickfix error
+nmap <S-F2> :cp<CR>               " - Shift-F2 = Previous quickfix error
+
+"
+" cscope navigation keys based on F3
+"
+" Press F3 followed by one of the following keys:
+"
+cscope add cscope.out
+silent! unmap <F3>
+nnoremap <F3>s :cscope find s <C-R><C-W><CR>|  " - s: C symbol
+nnoremap <F3>a :cscope find a <C-R><C-W><CR>|  " - a: Symbol is assigned a value
+nnoremap <F3>g :cscope find g <C-R><C-W><CR>|  " - g: This declaration
+nnoremap <F3>d :cscope find d <C-R><C-W><CR>|  " - d: Functions called by this function
+nnoremap <F3>c :cscope find c <C-R><C-W><CR>|  " - c: Functions calling this function
+nnoremap <F3>t :cscope find t <C-R><C-W><CR>|  " - t: This text string
+nnoremap <F3>f :cscope find f @#<CR>|          " - f: This file
+nnoremap <F3>i :cscope find i @#<CR>|          " - i: Files #including this file
+
+"
+" Compiling, Testing, Debugging
+"========================================
+"
+nnoremap <F5>   :make all<CR>|    " - F5: make all
+nnoremap <C-F5> :make test<CR>|   " - Ctrl-F5:  make test
+nnoremap <F9>   :exec('make break FILE=% LINE='.line('.'))<CR>|   " - F9: Debug and break at this line
+
+" vim:ft=vim:

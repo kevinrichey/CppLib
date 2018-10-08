@@ -7,7 +7,7 @@ ACTIVE_TARGET = test
 # Files
 
 HELLO_SOURCE = kwrlib.cpp
-KWR_SOURCE = kwrsdl.cpp kwrgame.cpp kwrrnd.cpp kwrlib.cpp
+KWR_SOURCE = kwrsdl.cpp kwrgame.cpp kwrprng.cpp kwrlib.cpp
 TEST_SOURCE = TestCase.cpp testkwrlib.cpp TestKwrGame.cpp
 
 # C++ Compiler Options
