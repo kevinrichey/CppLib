@@ -1,24 +1,17 @@
 
-Outline
-====================
+# Tools
 
-- Code Style
-- Strings
-- Quality 
-    - Testing
-    - Debugging
-    - Tracing
-    - Logging
-- Collections 
-    - Arrays
-    - Lists
-- Ranges
-- Collection Pipelines
-- Configuration & Arguments
-- Source Documenting
+## Source Control (git)
 
-Code Style
-====================
+## Environment (MSYS2)
+
+## Compiler
+
+## Build
+
+## Docs
+
+# Code Standard
 
 ## Naming
 
@@ -37,75 +30,113 @@ Code Style
 - Scope declarations:        2 spaces after class {
 - Class members:             4 spaces from margin
 - Return types & templates:  no indent
-- Unclosed parans:           align with first character
+- Unclosed parens:           align with first character
 - Line continuations:        2 spaces
-- No line breaks.
-- No line wrapping.
+- No line breaks or wrapping.
 - Single space after control keywords: eg. "for (...)"
-- Open brace on next line.
+- Open brace end of control statements.
 - Single spaces around operators (x = 1 + 2).
 
-## Resources
+## Error Handling & Exceptions Safety
 
-- RAII: All resources (memory, file, sockets, etc) managed & disposed by a destructor.
-- Owner: object responsible for releasing/deleting a resource.
-- Copy: deep copy object contents
-- Move: transfer resource to another object
-- Swap: exchange resources between two objects
-- Release: return resource. 
-
-## Light Objects
-
-- Small objects easy/cheap to copy, up to 32 bytes.
-- Use default copy semantics.
-- Move semantics unnecessary (deleted).
-- Pass & return by value.
-
-## Heavy Objects
-
-- Large objects too expensive to copy.
-- Heap allocation.
-- Not copyable (Copy semantics disabled).
-- Move semantics optional.
-- Pass by reference/pointer to functions.
-- Return by pointer (created from new) or move semantics.
-- Eg. containers.
-
-## Exceptions & Safety
-
+- Ignore bad_alloc errors, let program crash.
+- Avoid exceptions.
+- Follow exception safe code anyway.
 - Use Copy & swap for assignment ops.
 
-Strings
-==============================
+## Standard Library
 
-- Types
-    - Literal
-    - Automatic
-    - Dynamic
+- swap, move, exchange
+- pair, tuple, tie
+- unique_ptr?
+- type traits
+- initializer_list
+- function
 
-Quality
-==============================
 
-## Primitives
 
-- TracePoint: source location & trace info.
-- Watch: variable name & value at point in time
-- Level: volume of reporting (0. none/off, 1. low, 99. high)
-- Backtrace: report of recent trace points
-- Category: type of trace/assertion (class, name, config)
+# Object Semantics
+
+## Content Operations
+
+- swap
+- move
+- copy
+- compare
+- print 
+- string
+
+## Resource Operations
+
+- discard     Free resource & become null.
+- disown      Nullify and return raw resource.
+- data        Access raw resource.
+- size        Total space available
+
+## Collection Operations
+
+- count       number of elements
+- at(n)       Reference element #n.
+- begin()     Start iteration at head.
+- end()       Where to stop iteration.
+- range(a,b)  Range over elements a through b.
+
+## Sequence Operations
+
+- get()       Return current element value.
+- next(n)     Move to next n'th element/value.
+- done()      No more elements?
+- infinite    Unlimited size?
+
+## Range Operations
+
+- get(n)      Return element #n value.
+- put(e, n)   Assign element #n value e.
+- length()    Number of elements remaining
+- last()      Index of last element (length - 1).
+- slice(n,m)  Return range from elements n to m.
+- tail        Remaining elements after head, slice(1,last)
+
+## Editor Operations
+
+- add(e)      Add element to end.
+
+## Type Members
+
+- Element     type of contained element
+- Returns     function return type
+- Base        base class type
+- Range       range type
+
+
+# Quality
+
+## Testing
+
+- Test case: class with test run method.
+- Register test case with test suite.
+- Run all test cases.
+- Report each test failure.
+- Test Assertions.
 
 ## Tracing
 
-- Details
-    - Source location in quickfix format: "filename:line:"
-    - Category
-    - Volume Level
-    - Message & Details
-- Categories
-    - App Start & Stop
-    - Scope entry & exit (Level +/-)
-    - Checkpoint
-    - Watch variables
+Details
+
+- Source location in Vim quickfix format: "filename:line:"
+- Category
+- Message & Details
+
+Categories
+
+- TracePoint: source location & trace info.
+- Trace: general trace message.
+- ScopeTrace:  scope entry/exit tracing.
+- Watch: variable name & value at point in time
+- Backtrace: report of recent trace points
+- Category: type of trace/assertion (class, name, config)
+- Failure:  assertion failure exception.
+- Assert:   assertion tracing.
 
 ## Assertions
 
@@ -141,23 +172,44 @@ Quality
     - Interruption mode
     - Reporting stream
 
-## Testing
+## Memory
 
-- Test case: class with test run method.
-- Register test case with test suite.
-- Run all test cases.
-- Report each test failure.
-- Test Assertions.
+## Logging
 
-## Config
+## Errors
 
-- Volume level
-- Categories on/off
-- Log file name, path, rotation
+## Return values
 
+## Type Info
 
-Ranges
-=====================
+# Strings
+
+- LitString  (literal string, immutable & fixed size)
+- FixString  (fixed size, mutable)
+- DynString  (dynamically sized, mutable)
+
+## Basic Operations
+
+- cstr()
+- length()
+- copy(), op=
+- equals ==
+- compare() 
+
+# Arrays
+
+## DataSize
+
+Template struct of pointer & size of data.
+
+## Basic Operations
+
+- data()
+- size()
+
+# Sequences
+
+# Ranges
 
 ## Range Spec
 
@@ -204,9 +256,22 @@ MemRange
 
 ![Collection Pipeline Operations](https://martinfowler.com/articles/collection-pipeline/#op-catalog)
 
+# Pipeline
 
-Logging
-==============================
+# Configuration & Arguments
+
+# Source Documenting
+
+# File I/O
+
+# Object Serialization
+
+# Data Table
+
+# String Table
+
+
+# Logging
 
 ## Category
 

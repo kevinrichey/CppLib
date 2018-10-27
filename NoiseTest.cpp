@@ -1,5 +1,5 @@
 #include "kwrlib.h"
-#include "kwrrnd.h"
+#include "kwrprng.h"
 #include "kwrgame.h"
 #include <utility>
 #include <iostream>

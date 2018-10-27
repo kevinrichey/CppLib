@@ -1,4 +1,4 @@
-#include "kwrrnd.h"
+#include "kwrprng.h"
 #include <limits>
 
 namespace kwr {
