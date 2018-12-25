@@ -1,7 +1,8 @@
 
 # Config
 
-ACTIVE_TARGET = test
+ACTIVE_TARGET = testsdl
+#ACTIVE_TARGET = test
 #ACTIVE_TARGET = hello
 
 # Files
@@ -38,6 +39,15 @@ debug: $(ACTIVE_TARGET)
 break: $(ACTIVE_TARGET)
 	gdb ./$(ACTIVE_TARGET).exe -q -ex "b $(FILE):$(LINE)" -ex run
 
+tags: $(KWR_SOURCE) $(TEST_SOURCE) test.cpp test.h
+	ctags -R .
+	cscope -R -b
+
+
+test: test.cpp test.h
+
+testsdl: testsdl.cpp kwrgame.cpp kwrsdl.cpp
+
 game: MySDL
 	./MySDL.exe
 
@@ -50,11 +60,6 @@ spline: DrawSpline
 rng: rngtest
 	./rngtest.exe
 
-tags: $(KWR_SOURCE) $(TEST_SOURCE)
-	ctags -R .
-	cscope -R -b
-
-#test: $(TEST_SOURCE:.cpp=.o) $(KWR_SOURCE:.cpp=.o)
 
 hello: $(HELLO_SOURCE:.cpp=.o) 
 

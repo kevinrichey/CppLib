@@ -9,25 +9,13 @@ namespace kwr {
 // Primitive Utilities
 
 #define kwr_Str(x)       #x
-#define kwr_Stringize(x) #x
 #define kwr_NumStr(num)  kwr_Str(num)
 #define kwr_Concat(a,b)  a##b
-
-/// Base class for types that should not have copy semantics.
-/// Disables copy ctr and assignment.
-struct Heavy
-{
-    Heavy() =default;
-    explicit Heavy (const Heavy&) =delete;
-    Heavy& operator= (const Heavy&) =delete;
-};
-
-typedef Heavy NonCopyable;
 
 /// Pair a variable value and name.
 template <typename T>
 struct ValName { T value; const char* name; };
-#define kwr_ValName(t)  ValName<decltype((t))> { (t), kwr_Stringize(t) }
+#define kwr_ValName(t)  ValName<decltype((t))> { (t), kwr_Str(t) }
 
 /// Source code location: filename and line #
 struct SourceLine

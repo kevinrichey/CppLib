@@ -1,89 +1,38 @@
-#include <cstdio>
+#include "test.h"
+
 #include <utility>
 #include <exception>
-#include <functional>
 #include <cstring>
 #include <tuple>
+#include <limits>
 
 namespace kwr {
 
-// Simple Primitives
-// ==================
+Assert::Assert(bool check, const char* message)
+{
+    if (on && !check) fail(message);
+}
 
-#define kwr_Str(x)       #x
-#define kwr_NumStr(num)  kwr_Str(num)
-#define kwr_Concat(a,b)  a##b
+bool Assert::on = true;
+std::function<void(const char*)> Assert::fail = FilePrintFormat("Assertion failed!  %s\n", stderr);
 
-template<class T, size_t N>
-constexpr size_t size(T (&)[N]) { return N; }
-
-struct SourcePoint {
-    const char* filename;
-    int line;
-
-    void print() const;
-};
+void println(const char* str)
+{
+    printf("%s\n", str);
+}
 
 void SourcePoint::print() const
 {
     printf("%s:%d: ", filename, line);
 }
 
-// Global stack of objects.
-//
-// Add a "next" member to your class:
-//    Type* next = gstack<T>(this);
-// Remove in destructor:
-//    ~Type() { gstack(next); }
-// Access first element:
-//    auto top = gstack<T>();
-template <typename Type>
-Type* gstack(Type* me = nullptr)
-{
-    static Type* top = nullptr;
-    Type* result = top;
-    if (me) top = me;
-    return result;
-}
-
 // Unit Testing
 // ===============
-
-class TestFailure {
-  public:
-    void print() const;
-    const char* const message;
-};
 
 void TestFailure::print() const
 {
     printf("failure: %s", message);
 }
-
-class TestCase {
-
-  public:
-
-    virtual void run() = 0;
-    TestCase* next() { return nextTest; }
-    void print() const;
-
-    TestCase(TestCase&) = delete;
-    TestCase& operator=(const TestCase&) = delete;
-
-  protected:
-
-    TestCase(const char* sourceFile, int sourceLine, const char* testName);
-    void test(bool condition, const char* label);
-    virtual ~TestCase() { gstack(nextTest); }
-
-  private:
-
-    TestCase* nextTest = gstack(this);
-
-    SourcePoint source;
-    const char* const name;
-};
 
 TestCase::TestCase(const char* sourceFile, int sourceLine, const char* testName) : 
   source({ sourceFile, sourceLine }),
@@ -101,426 +50,70 @@ void TestCase::print() const
     printf("Test case %s ", name);
 }
 
-#define kwr_TestCase(name) \
-class kwr_TestCase_##name : public kwr::TestCase { \
-    public: kwr_TestCase_##name() : TestCase( __FILE__, __LINE__, #name ) {} \
-    void run() override; \
-} kwr_TestCase_##name##_object; void kwr_TestCase_##name::run()
-
-// Simple Data Types
+// Memory
 // ====================
 
-class AbortNewHandler {
-    static void handler();
-    std::new_handler old_handler = std::set_new_handler(handler);
-
-  public:
-    ~AbortNewHandler() { std::set_new_handler(old_handler); }
-};
+AbortNewHandler::~AbortNewHandler() 
+{ 
+    std::set_new_handler(old_handler); 
+}
 
 void AbortNewHandler::handler()
 {    
     printf("Out of memory!\n");
+    std::terminate();
+}
+
+TerminateHandler::~TerminateHandler()
+{
+    std::set_terminate(old_handler);
+}
+
+void TerminateHandler::handler()
+{    
+    printf("Program Terminate. Backtrace:\n");
+    Trace::printBacktrace();
     abort();
 }
 
-template <typename T>
-struct Memory {
-    int size {};
-    T* ptr {};
+// String
+// ======================================================================
 
-    Memory() = default;
-    Memory(int initSize, T* initPtr) : size(initSize), ptr(initPtr) {}
-    Memory(int initSize) : Memory(initSize, new T[initSize]) {}
-    ~Memory() { delete[] ptr; }
-
-    Memory(const Memory<T>&) = delete;
-    Memory(const Memory<T>&&) = delete;
-    Memory<T>& operator=(const Memory<T>&) = delete;
-    Memory<T>& operator=(const Memory<T>&&) = delete;
-};
-
-
-class String {
-   
-  public:
-
-    String() = default;
-    explicit String(size_t strSize, char* initPtr);
-    explicit String(size_t strSize);
-    explicit String(const char* const initCstr);
-
-    String(const String& that);
-    String(String&& that);
-    String& operator=(const String& that);
-    String& operator=(String&& that);
-
-    void swap(String& that);
-    void ncopy(const char* fromCstr);
-
-    const char* cstr() const { return str; }
-    bool empty() const { return !str || !*str; } 
-    size_t size() const;
-    size_t length() const;
-
-    ~String();
-
-  private:
-
-    size_t strsize = 0;
-    char* str  = nullptr;
-};
-
-String::String(size_t initSize, char* initPtr) :
-  strsize(initSize),
-  str(initPtr)
+int String::compare(String that) const 
 {
-}
-  
-String::String(size_t init_size) :
-  String(init_size, new char[init_size])
-{
-    *str = '\0';
+    return std::strcmp(str.data, that.str.data); 
 }
 
-String::String(const char* const initCstr) :
-  String(std::strlen(initCstr)+1)
+bool operator==(String left, String right)
 {
-    ncopy(initCstr);
+    return !left.compare(right);
 }
 
-String::String(const String& that) :
-  String(that.str)
-{
-}
 
-String::String(String&& that) :
-  String(that.strsize, that.str)
-{
-    String().swap(that);
-}
-
-String& String::operator=(const String& that)
-{
-    // If big enough, copy chars into current array
-    if (strsize >= that.strsize) {
-        ncopy(that.str);
-    }
-    else {
-        String(that).swap(*this);
-    }
-
-    return *this;
-}
-
-String& String::operator=(String&& that)
-{
-    String mover( std::move(that) );
-    swap(mover);
-    return *this;
-}
-
-void String::swap(String& that)
-{
-    std::swap(strsize, that.strsize);
-    std::swap(str, that.str);
-}
-
-void String::ncopy(const char* fromCstr)
-{
-    std::strncpy(str, fromCstr, strsize-1);
-    str[strsize] = '\0';
-}
-
-size_t String::size() const
-{
-    return strsize;
-}
-
-size_t String::length() const
-{
-    return str? std::strlen(str) : 0;
-}
-
-bool operator==(const String& left, const String& right)
-{
-    return strcmp(left.cstr(), right.cstr()) == 0;
-}
-
-bool operator==(const String& left, const char* right)
-{
-    return !std::strcmp(left.cstr(), right);
-}
-
-bool operator==(const char* left, const String& right)
-{
-    return !std::strcmp(left, right.cstr());
-}
-
-String::~String()
-{
-    delete[] str;
-}
-
-// Tracing and Assetions
+// Tracing and Assertions
 // =======================
 
-struct TracePoint {
-    SourcePoint source;
-    const char* category;
-    const char* message;
-
-    void print() const;
-};
-
-void TracePoint::print() const
-{
-    source.print();
-    printf("%-5s %s\n", category, message);
-}
-
-class Trace {
-
-  protected:
-
-    Trace(const char* filename, int line, const char* category, const char* message) :
-      point( { filename, line, category, message} )
-    {}
-
-  public:
-
-    Trace(const char* filename, int line, const char* message); 
-    virtual void print();
-    ~Trace() { gstack<Trace>(next); }
-
-    static size_t backtrace(TracePoint* points, size_t length);
-
-    typedef std::function<void(TracePoint&)> PrinterType;
-    static void set(PrinterType newPrinter) { printer = newPrinter; }
-    static void defaultPrinter(TracePoint& trace);
-    static void nullPrinter(TracePoint& trace);
-
-  protected:
-
-    TracePoint point {};
-
-  private:
-
-    Trace* next = gstack<Trace>(this);
-    static PrinterType printer;
-
-};
-
-Trace::PrinterType Trace::printer { Trace::defaultPrinter };
-
-Trace::Trace(const char* filename, int line, const char* message) :
-  Trace(filename, line, "trace", message)
+Trace::Trace(SourcePoint point, String messagep) :
+  source(point),
+  message(messagep)
 {
     print();
 }
 
 void Trace::print()
 {
-    printer(point);
+    source.print();
+    printf("%s\n", message.cstr());
 }
 
-size_t Trace::backtrace(TracePoint* points, size_t length)
+int Trace::printBacktrace()
 {
     Trace* trace = gstack<Trace>(); 
-    size_t count = 0;
-    while (trace && length--) {
-        *points++ = trace->point;
+    while (trace) {
+        trace->print();
         trace = trace->next;
-        ++count;
-    }
-    return count;
-}
-
-void println(const char* str = "")
-{
-    printf("%s\n", str);
-}
-
-void Trace::defaultPrinter(TracePoint& trace)
-{
-    trace.print();
-}
-
-void Trace::nullPrinter(TracePoint& trace) {}
-
-#define KWR_TRACE_NAME(trace,line)  kwr_Concat(trace, line)
-#define kwr_Trace(message)   kwr::Trace  KWR_TRACE_NAME(trace,__LINE__) ( __FILE__, __LINE__, (message) )
-
-class ScopeTrace : public Trace 
-{
-  public:
-    ScopeTrace(const char* filename, int line, const char* scopename);
-    ~ScopeTrace();
-};
-
-ScopeTrace::ScopeTrace(const char* filename, int line, const char* scopename) :
-  Trace(filename, line, "begin", scopename)
-{
-    print();
-}
-
-ScopeTrace::~ScopeTrace()
-{
-    point.category = "end";
-    print();
-}
-
-#define kwr_Scope(name)  kwr::ScopeTrace  KWR_TRACE_NAME(scope,__LINE__) ( __FILE__, __LINE__, (name) )
-
-template <typename T, size_t N>
-watch(const char* filename, int line, const T& value, const char (&name)[N])
-{
-    char text[20+N];
-    size_t textlen = 20+N-1;
-    snprintf(text, textlen, "%s = %d", name, value);
-    TracePoint { filename, line, "watch", text }.print();
-}
-
-#define kwr_Watch(var)  kwr::watch( __FILE__, __LINE__, (var), (#var) )
-
-
-class Failure 
-{
-  public:
-    void print() const;
-
-  private:
-    TracePoint backtrace[100];
-    size_t count { Trace::backtrace(backtrace, size(backtrace)) };
-};
-
-void Failure::print() const
-{
-    const TracePoint* end = backtrace + count;
-    for (const TracePoint* point = backtrace; point != end; ++point) {
-        point->print();
     }
 }
-
-class Assert : public Trace {
-
-  public:
-
-    Assert(const char* filename, int line, bool condition, const char* expression) :
-      Trace (filename, line, "assert!", expression)
-    {
-        if (!condition) {
-            print();
-            fail();
-        }
-    }
-
-    virtual void fail() const;
-};
-
-void Assert::fail() const
-{
-    throw Failure();
-};
-
-#define kwr_Assert(condition)  kwr::Assert  KWR_TRACE_NAME(assert,__LINE__) ( __FILE__, __LINE__, (condition), (#condition) )
-
-// Containers
-
-template <typename Type>
-class Array {
-
-  public:
-
-    Array() = default;
-    Array(size_t initSize, Type* initData) : datasize(initSize), data(initData) {}
-    explicit Array(size_t initSize) : Array(initSize, new Type[initSize]) {}
-
-    Array(const Array<Type>&) = delete;
-    Array<Type>& operator=(const Array<Type>&) = delete;
-
-    Array(Array<Type>&& that) : Array(that.size(), that.data) {
-        that.nullify();
-    }
-
-    Array<Type>& operator=(Array<Type>&& that) {
-        Array<Type> mover( std::move(that) );
-        swap(mover);
-        return *this;
-    }
-
-    void swap(Array<Type>& that) {
-        std::swap(datasize, that.datasize);
-        std::swap(data, that.data);
-    }
-
-    void nullify() {
-        datasize = 0;
-        data = nullptr;
-    }
-
-    const Type* ptr() const { return data; }
-    size_t size() const { return datasize; }
-    Type* begin() { return data; }
-    Type* end() { return data+size(); }
-
-    Type& operator[](size_t index) { 
-        kwr_Assert(index < size());
-        return data[index]; 
-    }
-
-    ~Array() { delete[] data; }
-
-  private:
-
-    size_t datasize = 0;
-    Type* data  = nullptr;
-
-};
-
-template <typename Type>
-class Count {
-
-  public:
-
-    typedef Type ItemType;
-
-    Count(Type first, Type last) :
-      head(first), tail(last)
-    {}
-
-    int size() const { return tail - head + 1; }
-    Type get() const { return head; }
-    void next() { ++head; }
-
-  private:
-
-    Type head {};
-    Type tail {};
-};
-
-class Fibonacci {
-
-  public:
-
-    typedef int ItemType;
-
-    Fibonacci(int count) : end(count) {}
-
-    int size() const { return end; }
-    int get() const { return a; }
-    void next() { 
-        std::tie(a,b) = std::make_tuple(b, a+b);
-        --end;
-    }
-
-  private:
-    
-    int a = 0;
-    int b = 1;
-    int end;
-
-};
 
 
 } // kwr
@@ -528,12 +121,15 @@ class Fibonacci {
 
 int main(int argc, char* argv[])
 { 
+    kwr::AbortNewHandler  newAborter;
+    kwr::TerminateHandler terminator;
+
+    kwr::Assert::fail = kwr::ThrowException<kwr::Failure>();
+
     printf("Run Tests\n");
 
-    // Turn off trace printing for now
-    kwr::Trace::set(kwr::Trace::nullPrinter);
-    kwr_Scope("main()");
-
+    // Turn of trace printing
+    //kwr_Trace("main()");
 
     kwr::TestCase* test = kwr::gstack<kwr::TestCase>();
     int count = 0;
@@ -552,8 +148,7 @@ int main(int argc, char* argv[])
     catch (kwr::Failure& failure) {
         ++failures;
         test->print();
-        printf("assertion failure, backtrace:\n");
-        failure.print();
+        printf("Assertion failure!  %s\n", failure.what());
     }
     catch (std::exception& except) {
         ++failures;
@@ -567,41 +162,49 @@ int main(int argc, char* argv[])
 	  return failures? 1 : 0;
 }
 
+kwr_TestCase(AssertTest)
+{
+    //kwr::Assert(false, "Testing assertions");
+}
+
+kwr::String getString() { return kwr::String("hello"); }
+
+void passString(kwr::String str) { kwr::Assert(str == "world", "passed string 'world'"); }
 
 kwr_TestCase(StringTest)
 {
-    kwr::String copy("hello");
-
+    // Default constructor
     kwr::String nullstr;
     test(nullstr.empty(), "Null string is false");
     test(nullstr.length() == 0, "Null string length 0");
-    test(nullstr.size() == 0, "Null string size 0");
-    nullstr = copy;
-    test(nullstr == "hello", "null string assignment");
 
-    kwr::String empty(8);
-    test(empty.empty(), "Empty string is false (no value)");
-    test(empty.length() == 0, "Empty string length 0");
-    test(empty.size() == 8, "Empty string has capacity 8");
-
+    // Literal string constructor
     kwr::String literal("xyzzy");
-    test(!literal.empty(), "Litearl string not empty");
+    test(!literal.empty(), "Literal string not empty");
     test(literal.length() == 5, "Literal string size");
-    test(literal.size() == 6, "Literal string capacity");
     test(literal == "xyzzy", "Literal string value");
 
-    kwr::String s2("zork");
-    s2 = copy;
-    test(s2 == "hello", "String copy & compare");
+    // Copy constructor
+    kwr::String copy(literal);
+    test(copy == "xyzzy", "Copy ctor value = xyzzy");
+    test(copy.cstr() == literal.cstr(), "Copy ctr points to same memory");
 
-    kwr::String bigstr(100);
-    test(bigstr.size() == 100, "Capacity 100");
-    test(bigstr.length() == 0, "Size 0");
+    // Copy assignment operator
+    nullstr = literal;
+    test(nullstr == "xyzzy", "Copy assignment");
+    test(nullstr.cstr() == literal.cstr(), "Copy assignment points to same memory");
 
-    bigstr = copy;
-    test(bigstr.size() == 100, "Capacity still 100");
-    test(bigstr.length() == 5, "Size now 5");
-    test(bigstr == "hello", "Big string copy");
+    // Return value
+    kwr::String hello( getString() );
+    test(hello == "hello", "String return value");
+
+    // Implicit constructor
+    passString("world");
+
+    // Implicit assignment
+    kwr::String implicit;
+    implicit = "implied";
+    test(implicit == "implied", "Implicit literal str assingment");
 }
 
 kwr::Array<double> makeArray()
@@ -677,24 +280,74 @@ kwr_TestCase(CountTest)
     test(fib[5] == 5, "fib[5] == 5");
     test(fib[6] == 8, "fib[6] == 8");
     test(fib[7] == 13, "fib[7] == 13");
-
-}
-
-template <typename Type>
-struct SizedArray {
-    size_t size;
-    Type   data[1];
-};
-
-kwr_TestCase(Memory)
-{
-    kwr::Memory<float> mem(10);
-
 }
 
 kwr_TestCase(NewHandler)
 {
     //kwr::AbortNewHandler handler;
     //int* p = new int[1000000000000];
+}
+
+class Thing {
+  public:
+    Thing() { ++count; }
+    ~Thing() { --count; }
+    static int count;
+};
+
+int Thing::count = 0;
+
+template <class Type>
+class Object {
+
+  public:
+
+    Object() = default;
+    explicit Object(Type* p) : pointer(p) {}
+
+    bool  operator!() const { return !pointer; }
+    Type* operator->() { return pointer; }
+    Type& operator*(){ return *pointer; }
+    Type* get() { return pointer; }
+    Type* release() { return std::exchange(pointer, nullptr); }
+
+    Object<Type>& operator=(Type* p)
+    {
+        return Object<Type>(p).swap(*this);
+    }
+
+    Object<Type>& swap(Object<Type>& that)
+    {
+        std::swap(pointer, that.pointer);
+        return *this;
+    }
+
+    ~Object() { delete pointer; }
+    
+    // Turn off copying
+    Object(const Object<Type>&) = delete;
+    Object<Type>& operator=(const Object<Type>&) = delete;
+
+  private:
+
+    Type* pointer {};
+};
+
+kwr_TestCase(Object)
+{
+    // Default constructot
+    Object<Thing> nullobject;
+    test(!nullobject, "Default object is empty");
+
+    // Assignment operator
+
+    // Init constructor & destructor
+    test(!Thing::count, "count starts at zero");
+    {
+        Object<Thing> thing( new Thing );
+        test(Thing::count == 1, "one count");
+    }
+    test(!Thing::count, "count zero again");
+
 }
 

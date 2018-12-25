@@ -1,4 +1,4 @@
-"
+
 " C/C++ Code Standards
 "======================
 "
@@ -27,8 +27,10 @@ set foldenable foldmethod=syntax  " - Use syntax code folding.
 nnoremap <C-]> g<C-]>             " - C-] opens list if more than one match
 nmap <F2> :cn<CR>                 " - F2 = Next quickfix error
 nmap <S-F2> :cp<CR>               " - Shift-F2 = Previous quickfix error
+botright cwindow                  " Open quickfix across full window width
+set switchbuf=useopen             " Switch to open buffers
 
-"
+
 " cscope navigation keys based on F3
 "
 " Press F3 followed by one of the following keys:

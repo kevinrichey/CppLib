@@ -11,6 +11,7 @@
 
 ## Docs
 
+
 # Code Standard
 
 ## Naming
@@ -21,6 +22,13 @@
 - Namespaces: abbreviated lowercase, 3-5 chars.
 - #define symbols: ns_UPPER_SNAKE_CASE (ns = namespace)
 - #define macros: ns_UpperCamelCase (ns = namespace)
+
+### Specific Naming Rules
+
+Header Include Guards
+: INCLUDE_NS_FILE_H
+: - NS = namespace (eg "KWR").
+: - FILE = Filename (eg KWRLIB).
 
 ## Indentation & Formatting
 
@@ -68,10 +76,14 @@
 
 ## Resource Operations
 
-- discard     Free resource & become null.
-- disown      Nullify and return raw resource.
-- data        Access raw resource.
-- size        Total space available
+Examples: Arrays, strings, buffers.
+
+- dispose     Free resource & become null.
+- release     Nullify and return raw resource.
+- data        Access raw memory resource.
+- get         Access raw object resource.
+- size        Total space available.
+- take        Take ownership from another object.
 
 ## Collection Operations
 
@@ -83,9 +95,11 @@
 
 ## Sequence Operations
 
+Examples: counters, input streams
+
 - get()       Return current element value.
 - next(n)     Move to next n'th element/value.
-- done()      No more elements?
++ empty()     True if sequence is exhausted.
 - infinite    Unlimited size?
 
 ## Range Operations
@@ -93,13 +107,45 @@
 - get(n)      Return element #n value.
 - put(e, n)   Assign element #n value e.
 - length()    Number of elements remaining
+- empty()     True if range is exhausted.
+- first()     Index of first element (usually 0).
 - last()      Index of last element (length - 1).
 - slice(n,m)  Return range from elements n to m.
-- tail        Remaining elements after head, slice(1,last)
+- tail()      Remaining elements after head, slice(1,last)
++ take(n)     slice(first, n-1)
++ drop(n)     slice(n, last)
 
-## Editor Operations
+### Classes
 
-- add(e)      Add element to end.
+Count
+: Range of numbers between *min* and *max*.
+
+MemRange
+: Range of objects in contiguous memory array.
+: Used for traversing arrays.
+
+## Consumers/Modifiers
+
+- insert(e, n)   Insert element e at position n.
+- append(e)      Add element e to end.
+- remove(n,m)    Remove elements from positions n through m.
+- crop(n,m)      Remove elements outside positions n through m.
+
+## Pipelines
+
+![Collection Pipeline Operations](https://martinfowler.com/articles/collection-pipeline/#op-catalog)
+
+- clone:        new copy of collection
+- concat/op+:        combine 2 collections
+- diff(s)/op-:        remove instances of sub s, replace(s,empty)
+- filter(f):           return elements that pass function f
+- remove(f):        remove elements that pass function f
+- map(f):          apply function f to each element
+- reduce(f):       accumulate elements with function f(a,c)
+- slice/op(n,m):    sub-list elements in range n-m
+- substr(n,l):    sub-list of l elements starting at n
+- replace(n,m,s):    replace elements in range n-m with sub-list s
+- replace(s,t):       replace instances of sub-list s with sub-list t
 
 ## Type Members
 
@@ -108,6 +154,38 @@
 - Base        base class type
 - Range       range type
 
+# Function Semantics
+
+## Parameters
+
+- unique_ptr    Give ownership to function.
+- optional      May be empty/null and unused.
+- span          Pointer and size of memory array.
+
+- output     Value returned through parameter.
+- non_null   Painter may not be null (use a reference?)
+- non_empty  Container size must be > 0.
+- ensures    Value must meet given condition, eg:
+  - positive     (value > 0)
+  - negative     (value < 0)
+  - non-zero     (value != 0)
+  - ranged       (n <= value <= x)
+  - not_equals   (value != n)
+- interface    Any object that implements an interface
+
+## Return values
+
+- optional        Return may contain value or be empty/null.
+- unique_ptr      Return ownership to caller.
+- required        Caller must receive and assign value.
+- Error code
+
+- moveable objects
+- auto-delete ignored resources
+
+
+
+# Type info
 
 # Quality
 
@@ -188,75 +266,40 @@ Categories
 - FixString  (fixed size, mutable)
 - DynString  (dynamically sized, mutable)
 
-## Basic Operations
+## Operations
 
-- cstr()
-- length()
-- copy(), op=
-- equals ==
-- compare() 
+- op=:           replace with new string value
+- length:          # characters
+- op[i]:           char at position i
+- empty/op!:           true if length == 0
+- equals, op==:    compare for equality
+- compare(s):         compare strings
+- find(c):             position of char c
+- find(s):             position of substr s
 
-# Arrays
+- clone():
+- slice/op(n,m):    substr range
+- concat/op+.
+- diff(s)/op-.
+- format(values):   format string with given values.
+- split(s)
 
-## DataSize
+# Functions
 
-Template struct of pointer & size of data.
+- noop(e) {}
+- constant(e) -> X
+- identity(e) -> e
+- copy(e) -> e'
+- factory<C>() -> new C
+- deleteObject(o)
+- deleteArray(a)    
+- freeMemory(m)
+- throwException<E>(message)
+- abort(message)
+- println(message)
 
-## Basic Operations
 
-- data()
-- size()
-
-# Sequences
-
-# Ranges
-
-## Range Spec
-
-Typedefs
-
-+ Type    element type
-
-Constants
-
-+ front = 0   position of first element
-+ back = -1   position of last element
-
-Traversal
-
-+ pop(n=front)    Remove n+1 elements from front
-+ pop(-n)         Remove n elements from end (n is negative)
-+ crop(f,e)       Shrink range to elements f through e
-+ take(count)     crop(front, count-1)
-+ drop(count)     crop(count, back)
-
-Length
-
-+ more()        true if there is a next element
-+ empty()       true if range is exhausted
-+ finite()      true if size is finite
-+ size()        number of remaining elements
- 
-Access
-
-+ get(n=front)      return n'th element
-+ put(e, n=front)   set current element to e
-+ append(e)         adds new element e to end 
-
-## Range Classes
-
-NumRange
-: Range of numbers between *min* and *max*.
-
-MemRange
-: Range of objects in contiguous memory array.
-: Used for traversing arrays and strings.
-
-## Range Operations
-
-![Collection Pipeline Operations](https://martinfowler.com/articles/collection-pipeline/#op-catalog)
-
-# Pipeline
+# Range Operations
 
 # Configuration & Arguments
 
