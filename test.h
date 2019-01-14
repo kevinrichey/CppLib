@@ -5,21 +5,31 @@
 #include <new>
 #include <functional>
 #include <exception>
+#include <cstring>
 
 namespace kwr {
 
 // ====================================
 // Primitives
 
-#define kwr_Str(x)       #x
-#define kwr_NumStr(num)  kwr_Str(num)
-#define kwr_Concat(a,b)  a##b
+template <typename T>
+struct Span {
+    T*  data {};
+    int size {};
+
+    Span() = default;
+    Span(T* p, int n) : data(p), size(n) {}
+};
 
 template <typename T>
 struct Memory {
-    int size {};
     T*  data {};
+    int size {};
+
+    Memory() = default;
+    Memory(T* p, int n) : data(p), size(n) {}
 };
+
 
 template <typename Type>
 class Constant {
@@ -128,36 +138,10 @@ class Failure {
     const char* message;
 };
 
-// Location in source code: filename and line number.
-struct SourcePoint {
-    const char* filename;
-    int line;
-
-    void print() const;
-};
-
-#define kwr_FLine  kwr::SourcePoint{ __FILE__, __LINE__ }
 
 // Get size of fixed-length array.
 template<class T, size_t N>
 constexpr size_t size(T (&)[N]) { return N; }
-
-// Global stack of objects.
-//
-// Add a "next" member to your class:
-//    Type* next = gstack<T>(this);
-// Remove in destructor:
-//    ~Type() { gstack(next); }
-// Access first element:
-//    auto top = gstack<T>();
-template <typename Type>
-Type* gstack(Type* me = nullptr)
-{
-    static Type* top = nullptr;
-    Type* result = top;
-    if (me) top = me;
-    return result;
-}
 
 
 //========================================
@@ -177,46 +161,6 @@ class PassOwner {
 template <typename T>
 constexpr PassOwner<T> give(T &t) { return PassOwner<T>(t); }
 
-
-// Unit Testing
-// ===============
-
-class TestFailure {
-  public:
-    void print() const;
-    const char* const message;
-};
-
-class TestCase {
-
-  public:
-
-    virtual void run() = 0;
-    TestCase* next() { return nextTest; }
-    void print() const;
-
-    TestCase(TestCase&) = delete;
-    TestCase& operator=(const TestCase&) = delete;
-
-  protected:
-
-    TestCase(const char* sourceFile, int sourceLine, const char* testName);
-    void test(bool condition, const char* label);
-    virtual ~TestCase() { gstack(nextTest); }
-
-  private:
-
-    TestCase* nextTest = gstack(this);
-
-    SourcePoint source;
-    const char* const name;
-};
-
-#define kwr_TestCase(name) \
-class kwr_TestCase_##name : public kwr::TestCase { \
-    public: kwr_TestCase_##name() : TestCase( __FILE__, __LINE__, #name ) {} \
-    void run() override; \
-} kwr_TestCase_##name##_object; void kwr_TestCase_##name::run()
 
 
 // Simple Data Types
@@ -239,50 +183,31 @@ class AbortNewHandler {
 
 template <typename Type>
 struct Buffer : public Memory<Type> {
+
+    typedef Memory<Type> Base;
+
     Buffer() = default;
-    Buffer(Memory<Type> mem) : Memory<Type>({ mem }) {}
-    Buffer(int initSize) : Buffer({ initSize, new Type[initSize] }) {}
-    ~Buffer() { delete Memory<Type>::data; }
+    Buffer(Type* ptr, int initSize) : Base(ptr, initSize) {}
+    Buffer(Base mem) : Base(mem) {}
+    Buffer(int initSize) : Buffer(new Type[initSize], initSize) {}
+    ~Buffer() { delete Base::data; }
 
     Memory<Type> release() { 
         return Memory<Type> { 
-            std::exchange(Memory<Type>::size, 0),
-            std::exchange(Memory<Type>::data, nullptr) 
+            std::exchange(Memory<Type>::data, nullptr),
+            std::exchange(Memory<Type>::size, 0)
         };
     }
 };
 
-class String {
-   
-  public:
 
-    String() = default;
 
-    template<size_t N>
-    constexpr String(const char (&literal)[N]) : 
-      str({ N-1, const_cast<char*>(literal) })
-    {}
 
-    String(const String&) = default;
-    String& operator=(const String&) = default;
-
-    constexpr char* cstr() const { return str.data; }
-    constexpr int length() const { return str.size; }
-    bool empty() const { return !str.data || !*str.data; } 
-    int compare(String that) const;
-
-    // Todo
-    // char operator[](int i);
-    // operator!
-    // find
-
-  private:
-
-    Memory<char> str;
-
-};
-
-bool operator==(String left, String right);
+template <typename LString, typename RString>
+bool operator==(const LString& left, const RString& right)
+{
+    return !left.compare(right);
+}
 
 // =======================
 // Tracing 
@@ -291,7 +216,7 @@ class Trace {
 
   public:
 
-    Trace(SourcePoint point, String message_p); 
+    Trace(SourcePoint point, CString message_p); 
     void print();
     ~Trace() { gstack<Trace>(next); }
 
@@ -300,7 +225,7 @@ class Trace {
   protected:
 
     SourcePoint source;
-    String message;
+    CString message;
 
   private:
 

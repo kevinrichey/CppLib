@@ -1,15 +1,18 @@
 
 # Config
 
-ACTIVE_TARGET = testsdl
+#ACTIVE_TARGET = testsdl
 #ACTIVE_TARGET = test
-#ACTIVE_TARGET = hello
+ACTIVE_TARGET = hello
 
-# Files
+# Source Files
 
-HELLO_SOURCE = kwrlib.cpp
+HELLO_SOURCE = hello.cpp kwrlib.cpp
+TEST_SOURCE = test.cpp kwrlib.cpp
 KWR_SOURCE = kwrsdl.cpp kwrgame.cpp kwrprng.cpp kwrlib.cpp
-TEST_SOURCE = TestCase.cpp testkwrlib.cpp TestKwrGame.cpp
+
+TEST_OBJ = $(TEST_SOURCE:.cpp=.o)
+HELLO_OBJ = $(HELLO_SOURCE:.cpp=.o)
 
 # C++ Compiler Options
 
@@ -25,13 +28,17 @@ LIBRARY_PATH = -LC:\msys64\mingw64\lib
 WINDOWS_SUBSYS = -Wl,-subsystem,windows
 LDFLAGS = $(LIBRARY_PATH) $(WINDOWS_SUBSYS)
 LDLIBS = -lmingw32 -lSDL2main -lSDL2
+LINK.o = $(LINK.cc)
 
 # Targets
 
-all: tags run
+all: tags runtest run
 
 run: $(ACTIVE_TARGET)
-	./$(ACTIVE_TARGET).exe
+	./$(ACTIVE_TARGET).exe Kevin
+
+runtest: test
+	./test.exe
 
 debug: $(ACTIVE_TARGET)
 	gdb ./$(ACTIVE_TARGET).exe -q 
@@ -39,12 +46,15 @@ debug: $(ACTIVE_TARGET)
 break: $(ACTIVE_TARGET)
 	gdb ./$(ACTIVE_TARGET).exe -q -ex "b $(FILE):$(LINE)" -ex run
 
-tags: $(KWR_SOURCE) $(TEST_SOURCE) test.cpp test.h
+tags: $(HELLO_SOURCE) 
 	ctags -R .
 	cscope -R -b
 
 
-test: test.cpp test.h
+hello: $(HELLO_OBJ)
+
+test: $(TEST_OBJ) 
+
 
 testsdl: testsdl.cpp kwrgame.cpp kwrsdl.cpp
 
@@ -60,12 +70,9 @@ spline: DrawSpline
 rng: rngtest
 	./rngtest.exe
 
-
-hello: $(HELLO_SOURCE:.cpp=.o) 
-
 MySDL: $(KWR_SOURCE:.cpp=.o)
 
-TestKwr: $(TEST_SOURCE:.cpp=.o) $(KWR_SOURCE:.cpp=.o)
+#TestKwr: $(TEST_SOURCE:.cpp=.o) $(KWR_SOURCE:.cpp=.o)
 
 NoiseTest: $(KWR_SOURCE:.cpp=.o)
 
@@ -78,9 +85,9 @@ DrawSpline: $(KWR_SOURCE:.cpp=.o)
 clean:
 	rm -f *.exe *.o *.d
 
-.PHONY: clean all run 
+.PHONY: clean all run runtest
 
 # Include the .d dependency files
 
-include $(wildcard $(KWR_SOURCE:.cpp=.d))
+include $(wildcard $(HELLO_SOURCE:.cpp=.d))
 include $(wildcard $(TEST_SOURCE:.cpp=.d))

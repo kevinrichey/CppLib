@@ -16,19 +16,36 @@
 
 ## Naming
 
-- Types (class, struct, etc): UpperCamelCase
-- Methods & functions: lowerCamelCase
-- Variables & objects: lowercase, lower_snake_case
+- Types: UpperCamelCase
+- Functions: lowerCamelCase
+- Variables: lowercase, lower_snake_case
 - Namespaces: abbreviated lowercase, 3-5 chars.
-- #define symbols: ns_UPPER_SNAKE_CASE (ns = namespace)
-- #define macros: ns_UpperCamelCase (ns = namespace)
+- #define symbols: ns_UPPER_SNAKE_CASE
+- #define macros: ns_UpperCamelCase
+- Header Include Guards: KWR_HEADER_NS_FILE_H
 
-### Specific Naming Rules
+ns = namespace
 
-Header Include Guards
-: INCLUDE_NS_FILE_H
-: - NS = namespace (eg "KWR").
-: - FILE = Filename (eg KWRLIB).
+## Abbrevation Conventions
+
+- o: object
+- i: index 
+- j: secondary index
+- k: tertiary index
+- f: first 
+- l: last
+- b: begin
+- e: end
+- r: range
+- s: string
+- n: number
+- x: horizonal coordinate
+- y: vertical coordinate
+- z: height coordinate
+- r: row number
+- c: column number, character
+- T: type template parameter
+- p: pointer
 
 ## Indentation & Formatting
 
@@ -48,11 +65,13 @@ Header Include Guards
 ## Error Handling & Exceptions Safety
 
 - Ignore bad_alloc errors, let program crash.
-- Avoid exceptions.
-- Follow exception safe code anyway.
-- Use Copy & swap for assignment ops.
+- Use exceptions judiciously. 
+- Write exception-safe code.
+- Copy-swap assignment ops.
 
 ## Standard Library
+
+Prefer C++11.
 
 - swap, move, exchange
 - pair, tuple, tie
@@ -61,107 +80,71 @@ Header Include Guards
 - initializer_list
 - function
 
-
-
 # Object Semantics
 
-## Content Operations
+## Object Attributes
 
-- swap
-- move
-- copy
-- compare
-- print 
-- string
+- mutable: object contents may be modified
+- lifetime { temporary, dynamic, eternal }
+- composite: object contains other objects, has a size/length
+- copy by value
+- trivial: default c'tor/copy/d'tor
+- Value Type: stack allocation, copy/pass by value
+- Object Type: dynamic allocation, pass by ref
 
-## Resource Operations
 
-Examples: Arrays, strings, buffers.
+## Object Operations
 
-- dispose     Free resource & become null.
-- release     Nullify and return raw resource.
-- data        Access raw memory resource.
-- get         Access raw object resource.
-- size        Total space available.
-- take        Take ownership from another object.
+- Accessors (read-only functions, no side effects)
+    - compare
+    - equals
+    - clone
+    - same
+- Modifiers
+    - swap
+    - move
+    - copy
+- Operations
+    - print 
+    - string
 
-## Collection Operations
-
-- count       number of elements
-- at(n)       Reference element #n.
-- begin()     Start iteration at head.
-- end()       Where to stop iteration.
-- range(a,b)  Range over elements a through b.
-
-## Sequence Operations
-
-Examples: counters, input streams
-
-- get()       Return current element value.
-- next(n)     Move to next n'th element/value.
-+ empty()     True if sequence is exhausted.
-- infinite    Unlimited size?
-
-## Range Operations
-
-- get(n)      Return element #n value.
-- put(e, n)   Assign element #n value e.
-- length()    Number of elements remaining
-- empty()     True if range is exhausted.
-- first()     Index of first element (usually 0).
-- last()      Index of last element (length - 1).
-- slice(n,m)  Return range from elements n to m.
-- tail()      Remaining elements after head, slice(1,last)
-+ take(n)     slice(first, n-1)
-+ drop(n)     slice(n, last)
-
-### Classes
-
-Count
-: Range of numbers between *min* and *max*.
-
-MemRange
-: Range of objects in contiguous memory array.
-: Used for traversing arrays.
-
-## Consumers/Modifiers
-
-- insert(e, n)   Insert element e at position n.
-- append(e)      Add element e to end.
-- remove(n,m)    Remove elements from positions n through m.
-- crop(n,m)      Remove elements outside positions n through m.
-
-## Pipelines
-
-![Collection Pipeline Operations](https://martinfowler.com/articles/collection-pipeline/#op-catalog)
-
-- clone:        new copy of collection
-- concat/op+:        combine 2 collections
-- diff(s)/op-:        remove instances of sub s, replace(s,empty)
-- filter(f):           return elements that pass function f
-- remove(f):        remove elements that pass function f
-- map(f):          apply function f to each element
-- reduce(f):       accumulate elements with function f(a,c)
-- slice/op(n,m):    sub-list elements in range n-m
-- substr(n,l):    sub-list of l elements starting at n
-- replace(n,m,s):    replace elements in range n-m with sub-list s
-- replace(s,t):       replace instances of sub-list s with sub-list t
-
-## Type Members
+## Object Type Members
 
 - Element     type of contained element
 - Returns     function return type
 - Base        base class type
 - Range       range type
 
+## Resource Operations
+
+Examples: buffers, files, objects.
+
+- dispose     Free resource & become null.
+- release     Nullify and return raw resource.
+- data        Access raw memory resource.
+- get         Access raw object resource.
+- size        Total space available.
+- length      Number of elements, <= size.
+- move        Take ownership from another object.
+- clone
+
+## Object Type info
+
+- Type name (string)
+- Type ID
+
 # Function Semantics
+
+## Function Attributes
+
+- has/not side-effects
+- atomic, no dependencies 
 
 ## Parameters
 
-- unique_ptr    Give ownership to function.
+- owner         Give ownership to function.
 - optional      May be empty/null and unused.
 - span          Pointer and size of memory array.
-
 - output     Value returned through parameter.
 - non_null   Painter may not be null (use a reference?)
 - non_empty  Container size must be > 0.
@@ -184,37 +167,143 @@ MemRange
 - auto-delete ignored resources
 
 
+# Strings
 
-# Type info
+- Range of characters.
+- Has all [Range Operations].
+
+Literal String
+: A literal in-code static string.
+: immutable, fixed length, eternal, range
+
+Fixed String
+: Fixed-size string, like "char str[X]" where X is compiled-in length.
+: mutable, fixed length, temporary, copy by value
+
+Dynamic String
+: Size determined at run-time.
+: mutable, variable length, dynamic lifetime, resource
+
+
+## String Operations
+
+- split(s)
+- hash
+
+## String Modifiers
+
+- op= 
+- trim(c)
+- concat
+- format(values)
+
+
+# Aggregate Semantics
+
+## Collections
+
+Examples: arrays, containers, lists.
+
+- length           number of elements
+- at(i), op[i]     Reference element #i.
+- begin()          Start iteration at head.
+- end()            Where to stop iteration.
+- range(b,e)       Range over elements b through e.
+
+## Sequences
+
+Examples: counters, input streams, randomizers.
+
+- get(), op *       Return current element value.
+- op->              Access member of element.
+- next(), op++      Advance element.
+- empty()           True if sequence is exhausted.
+- op bool           True if sequence continues.
+- infinite          True if sequence never ends. 
+
+## Ranges
+
+### Range Generic Accessors
+
+- length()    Number of elements remaining
+- empty()     length() == 0
+- first()     Index of first element (usually 0)
+- last()      Index of last element (usually length() - 1).
+
+### Range Typed Accessors
+
+- get(i)      Element at index i.
+- slice(b,e)  Range from elements b through e.
+- find(e)     Index of element e or null.
+- find(r)     Index of first element of sub-range r, or null.
+- backfind(e)
+- backfind(r)
+- endsWith(r)
+- sequence    Sequence over the range.
+
+- take(n)     slice(first, n-1)
+- drop(n)     slice(n, last)
+- head()      get(first())
+- tail()      drop(1,last)
+
+### Range Modifiers
+
+- put(e, i)      Assign value e to element index i.
+- add(e)         Append element e to end.
+- add(e, i)      Insert element e at index i.
+- cut(i)         Remove element from index i.
+- cut(b,e)       Remove elements from index b through e.
+- remove(e)      Remove all instances of element e.
+- crop(b,e)      Remove elements except index n through m.
+- replace(n,m,s)      replace elements in range n-m with sub-list s
+- replace(s,t)        replace instances of sub-list s with sub-list t
+- replace(e,n)     Replace all instances of element e with value v.
+
+## Aggregate Operations
+
+Functions that operate on ranges and return new ranges or elements.
+
+![Collection Pipeline Operations](https://martinfowler.com/articles/collection-pipeline/#op-catalog)
+
+- clone               New copy of collection
+- concat, op+         Combine 2 collections
+- diff(s), op-        remove instances of sub s, replace(s,empty)
+- filter(f)           return elements that pass function f
+- remove(f)           remove elements that pass function f
+- map(f)              apply function f to each element
+- reduce(f)           accumulate elements with function f(a,c)
+- slice, op(n,m)      sub-list elements in range n-m
+- sublist(n,l)        sub-list of l elements starting at n
+
 
 # Quality
 
-## Testing
+## Unit Testing
 
-- Test case: class with test run method.
+- Test case class with run method.
 - Register test case with test suite.
 - Run all test cases.
 - Report each test failure.
 - Test Assertions.
 
-## Tracing
-
-Details
+## Code Tracing
 
 - Source location in Vim quickfix format: "filename:line:"
+- Date-time
 - Category
-- Message & Details
+- Message 
+- Backtrace recent trace points
 
-Categories
+## Trace Categories
 
-- TracePoint: source location & trace info.
-- Trace: general trace message.
-- ScopeTrace:  scope entry/exit tracing.
-- Watch: variable name & value at point in time
-- Backtrace: report of recent trace points
-- Category: type of trace/assertion (class, name, config)
-- Failure:  assertion failure exception.
-- Assert:   assertion tracing.
+- Trace:   general trace message
+- Scope:   scope entry & exit
+- Watch:   variable name & value 
+- Error:   runtime error
+- Warn:    runtime warning
+- Debug:   debugging info (disabled in release build)
+- Assert:  logic error
+- Test:    assertion for unit testing
 
 ## Assertions
 
@@ -223,19 +312,19 @@ Categories
     - Comparison
     - Is/not null
     - Expected exception
-- Report details to stream
-    - SourceLine
+- Report details 
+    - [SourceLine]
     - Category
-    - Level (always 1)
-    - Messaage (failed condition)
+    - Level
+    - Message 
+    - Failed condition
     - Backtrace
 - Interrupt execution
     - Throw
     - Abort
     - Nothing/Ignore
-
 - Categories
-    - Test
+    - Unit Test
     - Precondition (Require)
     - Postcondition (Ensure)
     - Invariant
@@ -246,43 +335,16 @@ Categories
     - stderr
     - file
     - UI
-- Config (per Category)
-    - Interruption mode
-    - Reporting stream
 
-## Memory
+## Trace File
 
-## Logging
+- Filename
+- Path/location
+- Roll-over
+- Lifetime
+- Header (events repeated at start of every new file)
+- Footer (events repeated at end of every closing file)
 
-## Errors
-
-## Return values
-
-## Type Info
-
-# Strings
-
-- LitString  (literal string, immutable & fixed size)
-- FixString  (fixed size, mutable)
-- DynString  (dynamically sized, mutable)
-
-## Operations
-
-- op=:           replace with new string value
-- length:          # characters
-- op[i]:           char at position i
-- empty/op!:           true if length == 0
-- equals, op==:    compare for equality
-- compare(s):         compare strings
-- find(c):             position of char c
-- find(s):             position of substr s
-
-- clone():
-- slice/op(n,m):    substr range
-- concat/op+.
-- diff(s)/op-.
-- format(values):   format string with given values.
-- split(s)
 
 # Functions
 
@@ -299,7 +361,6 @@ Categories
 - println(message)
 
 
-# Range Operations
 
 # Configuration & Arguments
 
@@ -314,85 +375,4 @@ Categories
 # String Table
 
 
-# Logging
 
-## Category
-
-- Error
-- Warning
-- Debug
-- Monitor
-- Watch
-- Checkpoint
-- Info
-- Custom?
-- Sub-categories?
-  - Error.NotFound
-  - Info.Startup
-
-## Frequency
-
-- Level of detail & volume
-- Higher = larger number of events
-- Inc/decrement
-- Value = approx # of events / time
-
-For example:
-
-0. Not used
-1. App Start/init & Stop/de-init
-+ Main Loop
-+ New transaction/input/operation
-..
-+ Detailed loop
-
-## ID Label
-
-Arbitrary identifier for log events.
-
-## Event
-
-Individual log message.
-
-- Date-Time
-- Category
-- Volume
-- Channel
-- Label
-- Message
-- Source line
-
-## Config
-
-- Max Level (Volume)
-- Category on/off
-- Event on/off
-- ID Label on/off
-- Channel Output, on/off
-- Conditional: only report events that pass criteria
-
-## Channel
-
-Maps to a Log Output
-
-- Name
-- Output
-
-## Output
-
-- File
-- Console
-- Debugger
-- Window
-- Null
-
-## File
-
-- Filename
-- Path/location
-- Roll-over
-- Lifetime
-- Header (events repeated at start of every new file)
-- Footer (events repeated at end of every closing file)
-
-<!-- vim:set ft=markdown: -->

@@ -1,306 +1,317 @@
-#pragma once
+#ifndef KWR_HEADER_KWRLIB_H
+#define KWR_HEADER_KWRLIB_H
 
-#include <functional>
+#include <type_traits>
+#include <algorithm>
 #include <cstring>
+#include <ctime>
+#include <cstdlib>
+#include <cstdio>
 
 namespace kwr {
-
-//======================================================================
-// Primitive Utilities
 
 #define kwr_Str(x)       #x
 #define kwr_NumStr(num)  kwr_Str(num)
 #define kwr_Concat(a,b)  a##b
+#define kwr_UniqueName(name, num)  kwr_Concat(name, num)
 
-/// Pair a variable value and name.
+extern bool on;
+extern bool off;
+
+class CString;
+class OutStream;
+
+class IxRoot {
+  public:
+    virtual void print() const;
+    virtual void print(OutStream&) const;
+    virtual CString name() const;
+    virtual ~IxRoot() {}
+};
+    
 template <typename T>
-struct ValName { T value; const char* name; };
-#define kwr_ValName(t)  ValName<decltype((t))> { (t), kwr_Str(t) }
-
-/// Source code location: filename and line #
-struct SourceLine
-{
-    const char* filename;
-    unsigned    line;
-};
-
-#define kwr_SourceLine  kwr::SourceLine { __FILE__, __LINE__ }
-
-class Checkpoint
-{
+class Handle {
   public:
-    Checkpoint(const SourceLine& here) : sourceline(here) { top = this; }
-    ~Checkpoint() { top = next; }
+    explicit Handle(T* ptr = nullptr) : pointer(ptr) {}
+    T* operator->() { return pointer; }
+    const T* operator->() const { return pointer; }
+    ~Handle() { delete pointer; }
+
+    Handle(const Handle<T>&) = delete;
+    Handle(const Handle<T>&&) = delete;
+    Handle& operator=(const Handle<T>&) = delete;
+    Handle& operator=(const Handle<T>&&) = delete;
 
   private:
-    const SourceLine sourceline;
-    Checkpoint *next = top;
-    static Checkpoint* top;
+    T* pointer {};
 };
 
-#define KWR_CHECKPOINT_NAME(name)   kwr_Concat(_checkpoint_,name)
-#define kwr_Checkpoint(msg)         kwr::Checkpoint KWR_CHECKPOINT_NAME(__LINE__)( kwr_SourceLine )
+class Compared {
 
-class Failure : public std::exception
-{
   public:
-    explicit Failure(SourceLine source, const char* errormsg = nullptr) :
-      location(source)
-    {
-        if (errormsg) {
-            strncpy(message, errormsg, sizeof(message));
-        }
-    }
-
-    virtual const char* what() const noexcept { return message; }
-
-    SourceLine source() const { return location; }
+    Compared(int r) : result(r) {}
+    bool equal()   const { return result == 0; }
+    bool greater() const { return result > 0; }
+    bool less()    const { return result < 0; }
+    int  value()   const { return result; }
+    operator int() const { return result; }
 
   private:
-    SourceLine location;
-    char message[64] {};
+    int result;
 };
 
-bool fail(SourceLine source, const char* label);
-
-class Assertion
-{
+class IxSequence : public IxRoot {
   public:
-    inline Assertion(SourceLine source, bool condition, const char* label) 
-    {
-        if (!condition) fail(source, label);
-    }
+    virtual void next() =0;
+    virtual bool pending() const =0;
+    virtual CString name() const;
+    virtual ~IxSequence() {}
 };
 
-typedef Assertion Require;
-
-#define kwr_Assert(condition)   kwr::Assertion  _kwr_assert_##__LINE__( kwr_SourceLine, (condition), #condition )
-
-
-
-template <typename T> 
-class Range
-{
-  public:
-    Range(T first, T last) : head(first), tail(last) {}
-    size_t size() const { return tail - head + 1; }
-    void pop() { ++head; }
-    T get() const { return head; }
-
-  private:
-    T head, tail;
-};
-
-template <typename T> 
-class Range<T*>
-{
-  public:
-    Range(T* first, T* last) : head(first), tail(last) {}
-    Range(T* first, int length) : Range(first, first+length-1) {}
-
-    size_t size() const { return tail - head + 1; }
-    bool more() const { return size() != 0; }
-    void pop() { ++head; }
-
-    void pop(int n)
-    { 
-        if (n > 0) head += std::min(n, (int)size());
-        else       tail += std::max(n, -(int)size());
-    }
-
-    const T &get() const { return *head; }
-    void put(const T& t) { *head = t; }
-    T &operator[](size_t i) { return head[i]; }
-
-  private:
-    T* head;
-    T* tail;
-};
-
-template <typename FromType, typename ToType>
-Range<ToType> copy (Range<FromType> from, Range<ToType> to)
-{
-    auto copied = to;
-
-    while (from.more() && to.more())
-    {
-        to.put( from.get() );
-        from.pop();
-        to.pop();
-    }
-
-    copied.pop( -to.size() );
-    return copied;
-}
-
-
-// Alias any function name.
-#define kwr_FnAlias(oldfunc, newfunc) \
-  template <typename... Args> \
-inline auto newfunc(Args&&... args) -> decltype(oldfunc(std::forward<Args>(args)...)) \
-{ return oldfunc(std::forward<Args>(args)...); }
-
-
-//======================================================================
-// Containers & Ranges
-
-template <typename T=int> 
-class Counter
-{
-  public:
-    typedef T Type;
-    Counter(T start) : current(start) {}
-    bool finite() const { return false; }
-    void pop() { ++current; }
-    T get() const { return current; }
-    Range<T> to(T end) { return Range<T>(current, end); }
-
-  private:
-    T current;
-};
+int print(IxSequence& sequence, OutStream& out);
 
 template <typename T>
-Counter<T> from(T f) { return Counter<T>(f); }
-
-template <typename T> 
-class Array 
-{
+class Sequence : public IxSequence {
   public:
-    Array(Array<T>& a) = delete;
-    Array<T>& operator=(Array<T>& a) = delete;
+    virtual T*   get()  =0;
 
-    explicit Array(size_t n) : first(new T[n]), end(first+n) {}
-
-    Array(Array<T>&& a) : first(std::move(a.first)), end(std::move(a.end))
-    {
-        a.first = a.end = nullptr;
-    }
-
-    template <typename RT>
-    Array(Range<RT> range) : Array(range.size())
-    {
-        for (auto *i = first; i != end; ++i, range.pop()) {
-            *i = range.get();
-        }
-    }
-
-    template <typename RT, typename F>
-    Array(Range<RT> range, F function) : Array(range.size())
-    {
-        for (auto *i = first; range.size(); range.pop()) {
-            *i++ = function(range.get());
-        }
-    }
-
-    size_t size() const { return end-first; }
-
-    T& operator[](size_t i)
-    {
-        //Require { 0 <= i && i < end-first, "Array index out of bounds" };
-        return first[i];
-    }
-
-    Range<T> range() { return Range<T>(first, end); }
-
-    ~Array()
-    {
-        delete[] first;
-        first = end = nullptr;
-    }
-
-  private:
-    T *first, *end;
+    T* operator->()   { return get(); }
+    void operator++() { next(); }
+    operator bool() const { return pending(); }
 };
 
-template <typename Ctype>
-class StringT
-{
-  public:
-    typedef Ctype Type;
 
-    explicit StringT(size_t strSize) : 
-      length(strSize), 
-      str(new Type[length+1]) 
+class CString {
+  public:
+    CString(const char* str, int len) : strdata(str), strlength(len) {}
+    CString(char* str) : CString(str, str? std::strlen(str): 0) {}
+
+    template<size_t LEN>
+    constexpr CString(const char (&literal)[LEN]) : 
+      CString(literal, LEN-1)
     {}
 
-    explicit StringT(const Type* s) :
-      StringT(strlen(s))
-    {
-        strcpy(str, s);
-    }
+    CString() = default;
+    CString(const CString&) = default;
+    CString& operator=(const CString&) = default;
 
-    StringT(const StringT<Type>& other) : 
-      StringT(other.length) 
-    {
-        strcpy(str, other.str);
-    }
+    const char* cstr() const { return strdata; }
+    explicit operator const char*() const { return strdata; }
 
-    void swap(StringT& other)
-    {
-        std::swap(length, other.length);
-        std::swap(str, other.str);
-    }
+    int length()  const { return strlength; }
+    bool empty()  const { return length() == 0; }
+    bool operator!() const { return empty(); }
 
-    void copy(const StringT<Type>& other)
-    {
-        StringT<Type>(other).Swap(*this);
-    }
+    Compared compare(const CString& that) const;
 
-    StringT& operator= (const StringT& other)
-    {
-        Copy(other);
-        return *this;
-    }
-
-    size_t size() const
-    {
-        return length;
-    }
-
-    bool equals(const StringT<Type>& other) const
-    {
-        return !strcmp(str, other.str);
-    }
-
-    const Type* const getStr() const
-    {
-        return str;
-    }
-
-    Type* release() 
-    {
-        Type* s = str;
-        str = nullptr;
-        return s;
-    }
-
-    ~StringT()
-    {
-        delete[] str;
-    }
+    // range
+    // sequence
 
   private:
 
-    size_t length;
-    Type* str;
+    const char* strdata {};
+    int   strlength {};
 };
 
-typedef StringT<char> String;
+bool operator==(const CString& lhs, const CString& rhs);
+
+class OutStream {
+  public:
+    explicit OutStream(FILE* out_file) : file(out_file) {}
+
+    virtual void set(FILE* out_file) { file = out_file; }
+    virtual explicit operator FILE*() { return file; }
+
+    virtual int print(const char* s);
+    virtual int print(CString s);
+    virtual int print(int i);
+    virtual int print(double d);
+    virtual int print(bool b);
+    virtual int print(char c);
+
+    static OutStream& console();
+    static OutStream& error();
+    static OutStream& null();
+
+  protected:
+    OutStream() = default;
+
+  private:
+    FILE* file {};
+
+};
 
 
-//======================================================================
-// Math Operations
 
-extern const double pi;
+class Value {
+  public:
+    virtual void print(OutStream& out) const;
+};
 
-double lerp(double a, double b, double f);
-double coserp(double a, double b, double x);
-double sCurve(double x);
-double step(double a, double x);
-double pulse(double a, double b, double x);
-double clamp(double a, double b, double x);
-double smoothstep(double a, double b, double x);
-double spline(double x, double nknots, double *knots);
+template <typename T>
+class Wrapper : public Value {
 
-} // kwr
+  public:
+    T data;
 
+    explicit Wrapper(const T& t) : data(t) {}
+    virtual void print(OutStream& out) const { out.print(data); }
+};
+
+template <typename T>
+Wrapper<T>* wrap(const T& v) { return new Wrapper<T>(v); }
+
+// Global stack of objects.
+//    Add next member:        Type* next = gstack<T>(this);
+//    Remove in destructor:   ~Type() { gstack(next); }
+//    Access first element:   auto top = gstack<T>();
+template <typename Type>
+Type* gstack(Type* me = nullptr)
+{
+    static Type* top = nullptr;
+    Type* result = top;
+    if (me) top = me;
+    return result;
+}
+
+template <typename T>
+class GStackSequence : public Sequence<T> {
+  public:
+    T*   get()  { return element; }
+    void next() { element = element->next; }
+    bool pending() const { return element; }
+    void print(OutStream& out) const { element->print(out); }
+
+  private:
+    T* element = gstack<T>(); 
+};
+
+// ============================================================ 
+// Source Tracing
+
+struct SourcePoint {
+    SourcePoint(CString file, int l) : filename(file), line(l) {}
+    CString filename;
+    int line;
+
+    void print(OutStream& out) const;
+};
+
+#define kwr_FileLine  kwr::SourcePoint(__FILE__, __LINE__)
+
+class Trace {
+
+  public:
+    explicit Trace(SourcePoint point, CString cat, CString message);
+    explicit Trace(SourcePoint point, CString message);
+
+    Trace* const next = gstack<Trace>(this);
+
+    void report() const;
+    virtual void print(OutStream& out) const;
+
+    virtual ~Trace();
+
+    static void print(OutStream& out, SourcePoint where, std::time_t when, CString category, CString what, CString end="\n");
+    static GStackSequence<Trace> backtrace();
+
+    static void turn(bool mode);
+    static void set(OutStream& new_out);
+
+  protected:
+    SourcePoint where;
+    std::time_t when;
+    CString     category;
+    CString     what;
+
+    static bool trace_on;
+    static OutStream ostream;
+};
+
+#define kwr_Trace(message)   \
+  kwr::Trace kwr_UniqueName(kwr_Trace_, __LINE__) ( kwr_FileLine, (message) )
+
+class ScopeTrace : public Trace {
+
+  public:
+    explicit ScopeTrace(SourcePoint point, CString message);
+    virtual void print(OutStream& out) const;
+    virtual ~ScopeTrace();
+};
+
+#define kwr_Scope(message)   \
+  kwr::ScopeTrace kwr_UniqueName(kwr_Scope_, __LINE__) ( kwr_FileLine, (message) )
+
+class WatchTrace : public Trace {
+
+  public:
+    template <typename T>
+    WatchTrace(SourcePoint point, CString name, T value) :
+      Trace(point, "Watch", name),
+      watched(wrap(value))
+    {
+        report();
+    }
+
+    virtual void print(OutStream& out) const;
+
+  private:
+    Handle<Value> watched;
+
+};
+
+#define kwr_Watch(variable)   \
+  kwr::WatchTrace kwr_UniqueName(kwr_Watch_, __LINE__) ( kwr_FileLine, #variable, (variable) )
+
+template <typename Handler>
+void Assertion(SourcePoint source, bool condition, CString message)
+{
+    if (!condition) Handler::fail(source, message);
+}
+
+class AssertHandler {
+  public:
+    static void fail(SourcePoint source, CString message);
+};
+
+#define kwr_Assert(condition)  \
+  kwr::Assertion<kwr::AssertHandler>( kwr_FileLine, (condition), kwr_Str(condition) )
+
+// ============================================================ 
+// Unit Testing
+
+class TestFailure {
+  public:
+    SourcePoint source;
+    CString message;
+
+    void print(OutStream& out) const;
+};
+
+class TestCase {
+  public:
+    virtual void run() = 0;
+    virtual const CString name() const;
+    void print(OutStream& out) const;
+
+    TestCase* const next = gstack<TestCase>(this);
+    virtual ~TestCase();
+
+    static void fail(SourcePoint point, CString message);
+    static GStackSequence<TestCase> sequence();
+};
+
+#define kwr_TestCase(TESTNAME) \
+struct TESTNAME: public kwr::TestCase { \
+    virtual const kwr::CString name() const { return kwr_Str(TESTNAME); } \
+    virtual void run(); \
+} kwr_UniqueName(kwr_TestCase_,TESTNAME); \
+void TESTNAME::run() 
+
+#define kwr_Test(condition)  \
+  kwr::Assertion<kwr::TestCase>( kwr_FileLine, (condition), kwr_Str(condition) )
+
+
+} // kwr namespace
+
+#endif

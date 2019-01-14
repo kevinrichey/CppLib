@@ -1,117 +1,211 @@
+
 #include "kwrlib.h"
 #include <cstdio>
-#include <iostream>
-#include <limits>
-#include <cmath>
 
 namespace kwr {
 
-void printError(const char* filename, int line, const char* label, const char* message)
+bool on = true;
+bool off = false;
+
+
+void IxRoot::print() const
 {
-  printf("%s:%d: %s: %s\n", filename, line, label, message);
+    auto console = OutStream::console();
+    print(console);
 }
 
-Checkpoint* Checkpoint::top = nullptr;
-
-bool fail(SourceLine source, const char* label)
+void IxRoot::print(OutStream& out) const
 {
-  throw Failure(source, label);
-  return false;
+    out.print(name());
+}
+
+CString IxRoot::name() const
+{
+    return "IxRoot";
+}
+
+CString IxSequence::name() const
+{
+    return "IxSequence";
+}
+
+void Value::print(OutStream& out) const { out.print("Value"); }
+
+Compared CString::compare(const CString& that) const
+{
+    const char* left  = strdata? strdata : "";
+    const char* right = that.strdata? that.strdata : "";
+    int   maxlen = std::min(strlength, that.strlength) + 1; 
+    return std::strncmp(left, right, maxlen);
+}
+
+bool operator==(const CString& lhs, const CString& rhs)
+{
+    return lhs.compare(rhs).equal();
+}
+
+int OutStream::print(const char* s)  { return file? fprintf(file, "%s", s): 0; }
+int OutStream::print(CString s)      { return file? fprintf(file, "%s", (const char*)s): 0; }
+int OutStream::print(int i)          { return file? fprintf(file, "%d", i): 0; }
+int OutStream::print(double d)       { return file? fprintf(file, "%f", d): 0; }
+int OutStream::print(bool b)         { return file? fprintf(file, "%s", b? "true" : "false"): 0; }
+int OutStream::print(char c)         { return file? fprintf(file, "%c", c): 0; }
+
+OutStream& OutStream::console()
+{
+    static OutStream console_out(stdout);
+    return console_out;
+}
+
+OutStream& OutStream::error()
+{ 
+    static OutStream error_out(stderr);
+    return error_out;
+}
+
+OutStream& OutStream::null()
+{
+    static OutStream null_out(nullptr);
+    return null_out;
 }
 
 
-const double pi = 3.1415927; 
-
-double lerp(double a, double b, double f)
+int print(IxSequence& sequence, OutStream& out)
 {
-    return a + f * (b - a);
-}
-
-double coserp(double a, double b, double x)
-{
-    return lerp(a, b, (1.0L - std::cos(x*pi)) * 0.5L);
-}
-
-double sCurve(double x)
-{
-    return (x*x * (3.0 - 2.0*x));
-}
-
-double step(double a, double x) 
-{
-   return (double)( x >= a );
-}
-
-double pulse(double a, double b, double x) 
-{
-   return step(a, x) - step(b, x);
-}
-
-double clamp(double a, double b, double x) 
-{
-   return 
-      (x < a) ? a :
-      (x > b) ? b :
-      x;
-}
-
-double smoothstep(double a, double b, double x) 
-{
-   if(x < a)  return 0.0;
-   if(x >= b) return 1.0;
-
-   x = (x - a) / (b - a);
-   return (x*x * (3.0 - 2.0*x));
-}
-
-/* Coefficients of basis matrix. */
-#define CR00     -0.5
-#define CR01      1.5
-#define CR02     -1.5
-#define CR03      0.5
-#define CR10      1.0
-#define CR11     -2.5
-#define CR12      2.0
-#define CR13     -0.5
-#define CR20     -0.5
-#define CR21      0.0
-#define CR22      0.5
-#define CR23      0.0
-#define CR30      0.0
-#define CR31      1.0
-#define CR32      0.0
-#define CR33      0.0
-
-double spline(double x, double nknots, double *knot)
-{
-    int span;
-    int nspans = nknots - 3;
-    double c0, c1, c2, c3; // coefficients of the cubic.
-
-    if (nspans < 1) {  // illegal
-        printf("Spline has too few knots.\n");
-        return 0;
+    while (sequence.pending()) {
+        sequence.print(out);
+        sequence.next();
     }
-
-    /* Find the appropriate 4-point span of the spline. */
-    x = clamp(0, 1, x) * nspans;
-    span = (int) x;
-    if (span >= nknots - 3)
-        span = nknots - 3;
-    x -= span;
-    knot += span;
-
-    /* Evaluate the span cubic at x using Horner's rule. */
-    c3 = CR00*knot[0] + CR01*knot[1]
-       + CR02*knot[2] + CR03*knot[3];
-    c2 = CR10*knot[0] + CR11*knot[1]
-       + CR12*knot[2] + CR13*knot[3];
-    c1 = CR20*knot[0] + CR21*knot[1]
-       + CR22*knot[2] + CR23*knot[3];
-    c0 = CR30*knot[0] + CR31*knot[1]
-       + CR32*knot[2] + CR33*knot[3];
-
-    return ((c3*x + c2)*x + c1)*x + c0;
 }
 
-} // kwr
+void SourcePoint::print(OutStream& out) const
+{
+    fprintf((FILE*)out, "%s:%d: ", (const char*)filename, line);
+}
+
+
+void TestFailure::print(OutStream& out) const
+{
+    source.print(out);
+    fprintf((FILE*)out, "failure: %s\n", message.cstr());
+}
+
+const CString TestCase::name() const 
+{
+    return "TestCase";
+}
+
+void TestCase::print(OutStream& out) const 
+{
+    printf("Test case: %s\n", name().cstr()); 
+}
+
+void TestCase::fail(SourcePoint source, CString message)
+{
+    throw TestFailure { source, message };
+}
+
+GStackSequence<TestCase> TestCase::sequence()
+{
+    return GStackSequence<TestCase>();
+}
+
+TestCase::~TestCase() 
+{ 
+    gstack<TestCase>(next); 
+}
+
+
+Trace::Trace(SourcePoint point, CString cat, CString message) :
+  where(point), 
+  when(std::time(nullptr)),
+  category(cat),
+  what(message)
+{
+}
+
+Trace::Trace(SourcePoint point, CString message) :
+  Trace(point, "Trace", message)
+{
+    report();
+}
+
+void Trace::report() const
+{
+    if (trace_on) print(ostream);
+}
+
+void Trace::print(OutStream& out) const
+{
+    Trace::print(out, where, when, category, what);
+}
+
+void Trace::print(OutStream& out, SourcePoint where, std::time_t when, CString category, CString what, CString end)
+{
+    where.print(out);
+    std::tm* tm = std::localtime(&when);
+    FILE* file = (FILE*)out;
+    fprintf(file, "%04d-%02d-%02d: ", 1900+tm->tm_year, 1+tm->tm_mon, tm->tm_mday);
+    fprintf(file, "%02d.%02d.%02d%s: ", tm->tm_hour, tm->tm_min, tm->tm_sec, tm->tm_isdst? "-DST": "");
+    fprintf(file, "%s: %s%s", category.cstr(), what.cstr(), end.cstr());
+}
+
+Trace::~Trace() 
+{ 
+    gstack<Trace>(next); 
+}
+
+void Trace::turn(bool mode)
+{
+    trace_on = mode;
+}
+
+void Trace::set(OutStream& new_out)
+{
+    ostream = new_out;
+}
+
+bool Trace::trace_on = true;
+OutStream Trace::ostream(OutStream::console());
+
+ScopeTrace::ScopeTrace(SourcePoint point, CString message) :
+  Trace(point, "Scope", message)
+{
+    report();
+}
+
+void ScopeTrace::print(OutStream& out) const
+{
+    Trace::print(out, where, when, "Begin", what);
+}
+
+ScopeTrace::~ScopeTrace()
+{
+    if (trace_on) Trace::print(Trace::ostream, where, when, "End", what);
+}
+
+void WatchTrace::print(OutStream& out) const
+{
+    Trace::print(out, where, when, category, what, " = ");
+    watched->print(out);
+    out.print('\n');
+}
+
+void AssertHandler::fail(SourcePoint source, CString message)
+{
+    auto errout = OutStream::error();
+    Trace(source, "Assertion", message).print(errout);
+    errout.print("Backtrace begin.\n");
+    auto trace = Trace::backtrace();
+    kwr::print(trace, errout);
+    errout.print("Backtrace end.\n");
+    std::abort();
+}
+
+GStackSequence<Trace> Trace::backtrace()
+{
+    return GStackSequence<Trace>();
+}
+
+} // kwr namespace
+

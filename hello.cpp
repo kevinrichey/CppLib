@@ -1,132 +1,40 @@
 #include <cstdio>
-#include <cstdlib>
-#include <exception>
-#include <iostream>
+#include <limits>
+#include "kwrlib.h"
 
-#define kwr_Str(x)   #x
-#define kwr_NumStr(num)  kwr_Str(num)
+namespace kwr {
 
-struct SourceLine
+enum class ReturnCode { Success = 0, Error, Failure };
+
+
+} // kwr namespace
+
+void foo()
 {
-    const char* filename;
-    unsigned line;
-    const char* caption;
-};
+    kwr_Scope("foo()");
 
-class Checkpoint
-{
-  public:
-    Checkpoint(SourceLine here) : sourceline(here) { top = this; }
-    ~Checkpoint() { top = next; }
-
-  private:
-    const SourceLine sourceline;
-    Checkpoint *next = top;
-    static Checkpoint* top;
-};
-
-Checkpoint* Checkpoint::top = nullptr;
-
-class Failure : std::exception
-{
-  public:
-    Failure(const SourceLine& location) : sourceline(location) {}
-
-    virtual const char* what() const noexcept
-    {
-        return whatstr;
-    }
-
-    void print();
-
-    SourceLine sourceline;
-    
-  private:
-
-    static const char* whatstr;
-};
-
-const char* Failure::whatstr = "Assert Failure";
-
-void Failure::print()
-{
-    printf("%s:%d: %s {%s}\n", sourceline.filename, sourceline.line, what(), sourceline.caption);
+    kwr_Trace("doing nothing");
 }
 
-class Assertion
+
+int main(int argc, char* args[]) 
 {
-  public:
+    kwr::Trace::turn(kwr::off);
 
-    Assertion(bool check, SourceLine location) :
-      point(location) 
-    {
-        if (!check) throw Failure { location };
-    }
+    kwr_Scope("main()");
+    kwr_Trace("Hello, world!");
 
-  private:
-    Checkpoint point;
-};
+    kwr::CString programCommand( args[0] );
+    printf("Starting %s\n", programCommand.cstr());
 
-#define kwr_Assert(condition) Assertion _assertion_##__LINE__( (condition), {__FILE__, __LINE__, (#condition)});
+    kwr_Watch(argc);
+    
+    printf("Hello, %s\n", args[1]);
 
-template <typename Type>
-class Array 
-{
-  public:
-    Array(Type* h, size_t len) : head(h), tail(head+len-1) {}
-    virtual ~Array() =default;
-    Type& operator[](int i) { return head[i]; }
+    foo();
 
-  protected:
-    Type* head;
-    Type* tail;
-};
+    //kwr_Assert(1 == 2);
 
-template <typename Type>
-class DynArray : public Array<Type>
-{
-  public:
-    DynArray(int s) : Array<Type>(new Type[s], s) {}
-    virtual ~DynArray() { delete[] this->head; }
-
-    const char* layout = "Dynamic";
-
-};
-
-template <typename Type, size_t Size>
-class FixArray : public Array<Type>
-{
-  public:
-    FixArray() : Array<Type>(data, Size) {}
-
-    const char* layout = "Static";
-
-  private:
-    Type data[Size];
-};
-
-
-int main( int argc, char* args[] ) 
-{
-    printf("Hello World\n");
-
-    try
-    {
-        void *p = nullptr;
-        kwr_Assert(p);
-    }
-    catch (Failure &failure)
-    {
-        failure.print();
-    }
-
-
-    DynArray<int> dynints(100);
-    printf("dynints layout: %s\n", dynints.layout);
-
-    FixArray<int, 10> fixints;
-    printf("fixints layout: %s\n", fixints.layout);
-
-    return 0;
+    return static_cast<int>(kwr::ReturnCode::Success);
 }
 
