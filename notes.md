@@ -1,16 +1,16 @@
 
-# Tools
+# Todo
 
-## Source Control (git)
-
-## Environment (MSYS2)
-
-## Compiler
-
-## Build
-
-## Docs
-
+- Assert handler to throw exception
+- Change assert handler at runtime
+- Should Assert be a Trace? 
+- Switch class for on/off modes.
+- OutStream::println to print entire line from CString or sequence
+- Automatic sequence of printable elements for printing and string building
+- Dynamic string
+- Fixed string
+- Span for pointer/length pair
+- Array
 
 # Code Standard
 
@@ -64,7 +64,6 @@ ns = namespace
 
 ## Error Handling & Exceptions Safety
 
-- Ignore bad_alloc errors, let program crash.
 - Use exceptions judiciously. 
 - Write exception-safe code.
 - Copy-swap assignment ops.
@@ -75,63 +74,93 @@ Prefer C++11.
 
 - swap, move, exchange
 - pair, tuple, tie
-- unique_ptr?
 - type traits
 - initializer_list
 - function
+- avoid containers & iterators
+
+## Resource Management
+
+- Allocate objects individually
+- Primitive/trivial types only for arrays
+- Every resource has explicit owner
+- Prefer immutable objects
 
 # Object Semantics
 
 ## Object Attributes
 
-- mutable: object contents may be modified
-- lifetime { temporary, dynamic, eternal }
-- composite: object contains other objects, has a size/length
-- copy by value
-- trivial: default c'tor/copy/d'tor
-- Value Type: stack allocation, copy/pass by value
-- Object Type: dynamic allocation, pass by ref
+- Immutable
+- non-copyable
+- non-moveable 
+- trivial 
+- polymorphic
+- value type
+- array allocation (yes/no)
+- reference handling
+- composite: contains other object members
+- primitive: built-in types
+- consumable: using, accessing, or processing the object will consume it value
+- Temporary: lifetime limited within code execution scope.
+- Eternal: lifetime persists during entire program execution.
 
+## Polymorphic Types
 
-## Object Operations
+- class declaration
+- Non-copyable (delete copy-ctor, copy-assign).
+- Non-moveable (delete move-ctor, move-assign)
+- No array allocation (delete new[] and delete[])
+- Reference/pointer handling only.
+- virtual destructor
 
-- Accessors (read-only functions, no side effects)
-    - compare
-    - equals
-    - clone
-    - same
-- Modifiers
-    - swap
-    - move
-    - copy
-- Operations
-    - print 
-    - string
+## Simple Types
 
-## Object Type Members
+- struct declaration
+- primitive and simple members only
+- no virtual methods
+- array allocation allowed
+- Prefer is_trivial 
 
-- Element     type of contained element
-- Returns     function return type
-- Base        base class type
-- Range       range type
+## Common Object Operations
 
-## Resource Operations
+- compare
+- clone
+- print 
+- save
+- load
 
-Examples: buffers, files, objects.
+## Mem
 
-- dispose     Free resource & become null.
-- release     Nullify and return raw resource.
-- data        Access raw memory resource.
-- get         Access raw object resource.
+Pointer/size pair to memory.
+
+- data      raw pointer to memory
+- size      size of memory
+
+## Resource
+
+Buffers, files, objects.
+
+Copy ctr & op deleted to avoid implicit copy by value
+
+- dispose     Delete & nullify
+- release     Nullify & return raw resource
+- reset       Delete & assign new raw resource
+- swap        Exchange resource with another
+- move        Dispose & take resource
+- Destructor  Dispose
+
+### Handle Operations
+
+- raw         Access raw pointer
+- op->        Access object member, check null
+
+### Memory Operations
+
+- data        Access Mem pointer.
 - size        Total space available.
 - length      Number of elements, <= size.
-- move        Take ownership from another object.
-- clone
+- op[i]       Access element, check null & bounds
 
-## Object Type info
-
-- Type name (string)
-- Type ID
 
 # Function Semantics
 
@@ -169,21 +198,25 @@ Examples: buffers, files, objects.
 
 # Strings
 
-- Range of characters.
-- Has all [Range Operations].
+AString
+: Compile time fixed length string, like `char str[X]` literal char array.
+: Mutable, fixed length.
 
-Literal String
-: A literal in-code static string.
-: immutable, fixed length, eternal, range
+CString
+: Constant/Static string for parameters and compile-time literals like `"hello world"`.
+: Immutable, fixed length.
 
-Fixed String
-: Fixed-size string, like "char str[X]" where X is compiled-in length.
-: mutable, fixed length, temporary, copy by value
+DString
+: Dynamically sized string like `new char[X]`.
+: Mutable, variable length, resource.
 
-Dynamic String
-: Size determined at run-time.
-: mutable, variable length, dynamic lifetime, resource
+## Generic String Accessors
 
+- length()
+- size()
+- cstr()
+- empty()
+- operator!()
 
 ## String Operations
 

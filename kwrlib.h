@@ -21,12 +21,12 @@ extern bool off;
 class CString;
 class OutStream;
 
-class IxRoot {
+class Object {
   public:
     virtual void print() const;
     virtual void print(OutStream&) const;
     virtual CString name() const;
-    virtual ~IxRoot() {}
+    virtual ~Object() {}
 };
     
 template <typename T>
@@ -60,7 +60,7 @@ class Compared {
     int result;
 };
 
-class IxSequence : public IxRoot {
+class IxSequence : public Object {
   public:
     virtual void next() =0;
     virtual bool pending() const =0;
@@ -310,7 +310,6 @@ void TESTNAME::run()
 
 #define kwr_Test(condition)  \
   kwr::Assertion<kwr::TestCase>( kwr_FileLine, (condition), kwr_Str(condition) )
-
 
 } // kwr namespace
 

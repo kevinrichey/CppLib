@@ -18,7 +18,7 @@ class SDLError : public std::exception {
 
 class SDLInitialize {
   public:
-    SDLInitialize();
+    explicit SDLInitialize();
     ~SDLInitialize();
 };
 

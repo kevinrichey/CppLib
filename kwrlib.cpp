@@ -8,20 +8,20 @@ bool on = true;
 bool off = false;
 
 
-void IxRoot::print() const
+void Object::print() const
 {
     auto console = OutStream::console();
     print(console);
 }
 
-void IxRoot::print(OutStream& out) const
+void Object::print(OutStream& out) const
 {
     out.print(name());
 }
 
-CString IxRoot::name() const
+CString Object::name() const
 {
-    return "IxRoot";
+    return "Object";
 }
 
 CString IxSequence::name() const

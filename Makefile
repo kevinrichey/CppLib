@@ -7,7 +7,7 @@ ACTIVE_TARGET = hello
 
 # Source Files
 
-HELLO_SOURCE = hello.cpp kwrlib.cpp
+HELLO_SOURCE = hello.cpp kwrlib.cpp kwrsdl.cpp kwrgame.cpp
 TEST_SOURCE = test.cpp kwrlib.cpp
 KWR_SOURCE = kwrsdl.cpp kwrgame.cpp kwrprng.cpp kwrlib.cpp
 
