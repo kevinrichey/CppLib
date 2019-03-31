@@ -16,7 +16,7 @@ HELLO_OBJ = $(HELLO_SOURCE:.cpp=.o)
 
 # C++ Compiler Options
 
-INCLUDE_PATH = -IC:\msys64\mingw64\include\SDL2
+INCLUDE_PATH = -I/mingw64/include/SDL2
 GENERATE_DEPENDENCY_RULES = -MMD
 DEBUGGING = -g -D DEBUG
 CPPFLAGS = $(INCLUDE_PATH) $(GENERATE_DEPENDENCY_RULES)
@@ -24,10 +24,10 @@ CXXFLAGS = $(DEBUGGING)
 
 # Linker Options
 
-LIBRARY_PATH = -LC:\msys64\mingw64\lib
+LIBRARY_PATH = -LC:/mingw64/lib
 WINDOWS_SUBSYS = -Wl,-subsystem,windows
 LDFLAGS = $(LIBRARY_PATH) $(WINDOWS_SUBSYS)
-LDLIBS = -lmingw32 -lSDL2main -lSDL2
+LDLIBS = -lmingw32 -lSDL2main -lSDL2 -lSDL2_ttf
 LINK.o = $(LINK.cc)
 
 # Targets
@@ -35,7 +35,7 @@ LINK.o = $(LINK.cc)
 all: tags runtest run
 
 run: $(ACTIVE_TARGET)
-	./$(ACTIVE_TARGET).exe Kevin
+	./$(ACTIVE_TARGET).exe
 
 runtest: test
 	./test.exe

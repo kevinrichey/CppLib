@@ -3,10 +3,12 @@
 
 #include <type_traits>
 #include <algorithm>
+#include <utility>
 #include <cstring>
 #include <ctime>
 #include <cstdlib>
 #include <cstdio>
+#include <cstdarg>
 
 namespace kwr {
 
@@ -18,73 +20,41 @@ namespace kwr {
 extern bool on;
 extern bool off;
 
-class CString;
-class OutStream;
+//============================================================
+// Object Attributes
 
-class Object {
-  public:
-    virtual void print() const;
-    virtual void print(OutStream&) const;
-    virtual CString name() const;
-    virtual ~Object() {}
-};
-    
-template <typename T>
-class Handle {
-  public:
-    explicit Handle(T* ptr = nullptr) : pointer(ptr) {}
-    T* operator->() { return pointer; }
-    const T* operator->() const { return pointer; }
-    ~Handle() { delete pointer; }
+class Uncopyable {
+  protected:
+    constexpr Uncopyable() = default;
+    ~Uncopyable() = default;
 
-    Handle(const Handle<T>&) = delete;
-    Handle(const Handle<T>&&) = delete;
-    Handle& operator=(const Handle<T>&) = delete;
-    Handle& operator=(const Handle<T>&&) = delete;
-
-  private:
-    T* pointer {};
+    Uncopyable(const Uncopyable&) = delete;
+    Uncopyable& operator=(const Uncopyable&) = delete;
 };
 
-class Compared {
-
-  public:
-    Compared(int r) : result(r) {}
-    bool equal()   const { return result == 0; }
-    bool greater() const { return result > 0; }
-    bool less()    const { return result < 0; }
-    int  value()   const { return result; }
-    operator int() const { return result; }
-
-  private:
-    int result;
+class StackOnly {
+    static void *operator new     (size_t) = delete;
+    static void *operator new[]   (size_t) = delete;
+    static void  operator delete  (void*)  = delete;
+    static void  operator delete[](void*)  = delete;
 };
 
-class IxSequence : public Object {
-  public:
-    virtual void next() =0;
-    virtual bool pending() const =0;
-    virtual CString name() const;
-    virtual ~IxSequence() {}
+// Other names?  Polymorphic, Heavy, Object, HeapOnly
+class Complex : public Uncopyable {
+  protected:
+    Complex() = default;
+    virtual ~Complex() = default;
+    static void *operator new[]   (size_t) = delete;
+    static void  operator delete[](void*)  = delete;
 };
 
-int print(IxSequence& sequence, OutStream& out);
-
-template <typename T>
-class Sequence : public IxSequence {
-  public:
-    virtual T*   get()  =0;
-
-    T* operator->()   { return get(); }
-    void operator++() { next(); }
-    operator bool() const { return pending(); }
-};
-
+//======================================================
+// Basic Types & Resource Handles
 
 class CString {
   public:
     CString(const char* str, int len) : strdata(str), strlength(len) {}
-    CString(char* str) : CString(str, str? std::strlen(str): 0) {}
+    CString(const char* str) : CString(str, str? std::strlen(str): 0) {}
 
     template<size_t LEN>
     constexpr CString(const char (&literal)[LEN]) : 
@@ -96,13 +66,14 @@ class CString {
     CString& operator=(const CString&) = default;
 
     const char* cstr() const { return strdata; }
-    explicit operator const char*() const { return strdata; }
 
-    int length()  const { return strlength; }
-    bool empty()  const { return length() == 0; }
+    int  length()  const { return strlength;     }
+    bool empty()   const { return length() == 0; }
+
+    explicit operator const char*() const { return strdata; }
     bool operator!() const { return empty(); }
 
-    Compared compare(const CString& that) const;
+    int compare(const CString& that) const;
 
     // range
     // sequence
@@ -113,21 +84,128 @@ class CString {
     int   strlength {};
 };
 
+static_assert(std::is_trivially_copyable<CString>::value, "CString not trivial");
+
 bool operator==(const CString& lhs, const CString& rhs);
+
+template <typename T>
+class Object : public Uncopyable, public StackOnly {
+  public:
+    explicit Object(T* ptr = nullptr) : pointer(ptr) {}
+    ~Object() { delete pointer; }
+
+    bool empty() const { return pointer == nullptr; }
+
+    T*       operator->()       { return  pointer; }
+    const T* operator->() const { return  pointer; }
+    T&       operator*()        { return  pointer; }
+    const T& operator*()  const { return  pointer; }
+    bool     operator!()  const { return  empty(); }
+    operator bool()       const { return !empty(); }
+
+    void swap(Object<T>& h)  { std::swap(pointer, h.pointer); }
+    void move(Object<T>& h)  { swap(Object<T>().swap(h)); }
+    void reset(T* p)         { Object<T>(p).swap(*this); }
+    void dispose()           { Object<T>().swap(*this); }
+    T*   release()           { return std::exchange(pointer, nullptr); }
+
+  private:
+    T* pointer {};
+};
+
+template <typename T>
+struct Span {
+    int size = 0;
+    T*  data = nullptr;
+
+    void swap(Span<T>& other)
+    {
+        std::swap(size, other.size);
+        std::swap(data, other.data);
+    }
+
+    void move(Span<T>& from)
+    {
+        size = std::exchange(from.size, 0);
+        data = std::exchange(from.data, nullptr);
+    }
+};
+
+class Failure {
+  public:
+    Failure(CString msg) : message(msg) {}
+    CString message;
+};
+
+class ParamFailure : public Failure {
+  public:
+    ParamFailure(CString msg) : Failure(msg) {}
+};
+
+template <typename T>
+struct Positive {
+    Positive(T set) : value(set) 
+    { 
+        if (value <= 0) throw ParamFailure("parameter must be greater than zero");
+    }
+
+    T value;
+};
+
+template <typename T>
+class Array {
+  public:
+    Array() = default;
+    Array(Span<T> span) : array(span) {}
+    Array(Positive<int> newSize) : Array({newSize.value, new T[newSize.value]}) {}
+    ~Array() { delete[] array.data; array.data = nullptr; }
+
+    T& operator[](int i) { return array.data[i]; }
+    const T& operator[](int i) const { return array.data[i]; }
+
+    int  size()  const { return array.size; }
+    bool empty() const { return array.data == nullptr; }
+    bool operator!() const { return empty(); }
+    operator bool() const  { return !empty(); }
+
+    void swap(Array<T>& other)
+    {
+        array.swap(other.array);
+    }
+
+    void move(Array<T>& other)
+    {
+        array.move(other.array);
+    }
+
+    void dispose() { Array<T>().swap(*this); }
+
+    Span<T> release() 
+    {
+        Span<T> result;
+        result.swap(this->array);
+        return result;
+    }
+
+    void reset(Span<T>& span)
+    {
+        Array<T>(span).swap(*this);
+        span = Span<T>();
+    }
+
+  private:
+    Span<T> array;
+};
+
 
 class OutStream {
   public:
-    explicit OutStream(FILE* out_file) : file(out_file) {}
-
-    virtual void set(FILE* out_file) { file = out_file; }
-    virtual explicit operator FILE*() { return file; }
-
-    virtual int print(const char* s);
-    virtual int print(CString s);
-    virtual int print(int i);
-    virtual int print(double d);
-    virtual int print(bool b);
-    virtual int print(char c);
+    int print(CString s);
+    int print(int i);
+    int print(double d);
+    int print(bool b);
+    int print(char c);
+    int print(const char* format...);
 
     static OutStream& console();
     static OutStream& error();
@@ -135,22 +213,29 @@ class OutStream {
 
   protected:
     OutStream() = default;
+    explicit OutStream(FILE* out_file) : file(out_file) {}
 
   private:
     FILE* file {};
-
 };
 
+class Sequence {
+  public:
+    virtual void next() =0;
+    virtual bool pending() const =0;
+    virtual void print(OutStream&) const =0;
+    virtual ~Sequence() = default;
+};
 
+int print(Sequence& sequence, OutStream& out);
 
 class Value {
   public:
-    virtual void print(OutStream& out) const;
+    virtual void print(OutStream& out) const =0;
 };
 
 template <typename T>
 class Wrapper : public Value {
-
   public:
     T data;
 
@@ -175,12 +260,13 @@ Type* gstack(Type* me = nullptr)
 }
 
 template <typename T>
-class GStackSequence : public Sequence<T> {
+class GStackSequence : public Sequence {
   public:
     T*   get()  { return element; }
     void next() { element = element->next; }
     bool pending() const { return element; }
     void print(OutStream& out) const { element->print(out); }
+    T* operator->() { return get(); }
 
   private:
     T* element = gstack<T>(); 
@@ -256,7 +342,7 @@ class WatchTrace : public Trace {
     virtual void print(OutStream& out) const;
 
   private:
-    Handle<Value> watched;
+    Object<Value> watched;
 
 };
 

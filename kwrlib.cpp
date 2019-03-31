@@ -7,49 +7,39 @@ namespace kwr {
 bool on = true;
 bool off = false;
 
-
-void Object::print() const
-{
-    auto console = OutStream::console();
-    print(console);
-}
-
-void Object::print(OutStream& out) const
-{
-    out.print(name());
-}
-
-CString Object::name() const
-{
-    return "Object";
-}
-
-CString IxSequence::name() const
-{
-    return "IxSequence";
-}
-
-void Value::print(OutStream& out) const { out.print("Value"); }
-
-Compared CString::compare(const CString& that) const
+int CString::compare(const CString& that) const
 {
     const char* left  = strdata? strdata : "";
     const char* right = that.strdata? that.strdata : "";
-    int   maxlen = std::min(strlength, that.strlength) + 1; 
+    int   maxlen = std::min(length(), that.length()) + 1; 
     return std::strncmp(left, right, maxlen);
 }
 
 bool operator==(const CString& lhs, const CString& rhs)
 {
-    return lhs.compare(rhs).equal();
+    return !lhs.compare(rhs);
 }
 
-int OutStream::print(const char* s)  { return file? fprintf(file, "%s", s): 0; }
-int OutStream::print(CString s)      { return file? fprintf(file, "%s", (const char*)s): 0; }
+int OutStream::print(CString s)      { return file? fprintf(file, "%s.*", s.length(), (const char*)s): 0; }
 int OutStream::print(int i)          { return file? fprintf(file, "%d", i): 0; }
 int OutStream::print(double d)       { return file? fprintf(file, "%f", d): 0; }
 int OutStream::print(bool b)         { return file? fprintf(file, "%s", b? "true" : "false"): 0; }
 int OutStream::print(char c)         { return file? fprintf(file, "%c", c): 0; }
+
+int OutStream::print(const char* format...)
+{
+    int num = 0;
+
+    if (file)
+    {
+        va_list args;
+        va_start(args, format);
+        num = vfprintf(file, format, args);
+        va_end(args);
+    }
+
+    return num;
+}
 
 OutStream& OutStream::console()
 {
@@ -70,7 +60,7 @@ OutStream& OutStream::null()
 }
 
 
-int print(IxSequence& sequence, OutStream& out)
+int print(Sequence& sequence, OutStream& out)
 {
     while (sequence.pending()) {
         sequence.print(out);
@@ -80,14 +70,14 @@ int print(IxSequence& sequence, OutStream& out)
 
 void SourcePoint::print(OutStream& out) const
 {
-    fprintf((FILE*)out, "%s:%d: ", (const char*)filename, line);
+    out.print("%s:%d: ", (const char*)filename, line);
 }
 
 
 void TestFailure::print(OutStream& out) const
 {
     source.print(out);
-    fprintf((FILE*)out, "failure: %s\n", message.cstr());
+    out.print("failure: %s\n", message.cstr());
 }
 
 const CString TestCase::name() const 
@@ -97,7 +87,7 @@ const CString TestCase::name() const
 
 void TestCase::print(OutStream& out) const 
 {
-    printf("Test case: %s\n", name().cstr()); 
+    out.print("Test case: %s\n", name().cstr()); 
 }
 
 void TestCase::fail(SourcePoint source, CString message)
@@ -144,10 +134,9 @@ void Trace::print(OutStream& out, SourcePoint where, std::time_t when, CString c
 {
     where.print(out);
     std::tm* tm = std::localtime(&when);
-    FILE* file = (FILE*)out;
-    fprintf(file, "%04d-%02d-%02d: ", 1900+tm->tm_year, 1+tm->tm_mon, tm->tm_mday);
-    fprintf(file, "%02d.%02d.%02d%s: ", tm->tm_hour, tm->tm_min, tm->tm_sec, tm->tm_isdst? "-DST": "");
-    fprintf(file, "%s: %s%s", category.cstr(), what.cstr(), end.cstr());
+    out.print("%04d-%02d-%02d: ", 1900+tm->tm_year, 1+tm->tm_mon, tm->tm_mday);
+    out.print("%02d.%02d.%02d%s: ", tm->tm_hour, tm->tm_min, tm->tm_sec, tm->tm_isdst? "-DST": "");
+    out.print("%s: %s%s", category.cstr(), what.cstr(), end.cstr());
 }
 
 Trace::~Trace() 

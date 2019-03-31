@@ -4,28 +4,50 @@
 #include "kwrsdl.h"
 #include "kwrgame.h"
 
-namespace kwr {
-
-enum class ReturnCode { Success = 0, Error, Failure };
-
-
-} // kwr namespace
-
 using namespace kwr;
+using namespace kwr::game;
+
+SDL_Color white { 255, 255, 255, SDL_ALPHA_OPAQUE };
+SDL_Color red   { 255,   0,   0, SDL_ALPHA_OPAQUE };
+SDL_Color black { 0, 0, 0, SDL_ALPHA_OPAQUE };
+
+class FontWindow : public GameDriver {
+  public:
+    FontWindow() : GameDriver( {800, 600}, black, "Font Test") {}
+
+    ~FontWindow()
+    {
+    }
+
+    void setup() override
+    {
+        Surface surface { arialFont.Render("Hello, World!", white) };
+        hellotex.create(renderer, surface);
+    }
+
+    void render() override
+    {
+        Dims size = hellotex.size();
+        SDL_Rect rect { 300, 100, size.width, size.height };
+        renderer.color = red;
+        renderer.draw(rect);
+        renderer.draw(hellotex, { 300, 100 });
+    }
+
+    Font arialFont { "fonts/arial.ttf", 25 };
+    Texture hellotex;
+};
 
 int main(int argc, char* args[]) 
 {
-    //kwr::Trace::turn(kwr::off);
+    Trace::turn(off);
 
     kwr_Scope("main()");
     kwr_Trace("Hello, world!");
 
-    SDLInitialize sdl_init;
+    FontWindow win;
+    win.run();
 
-    SDL_Color background { 0, 0, 0, SDL_ALPHA_OPAQUE };
-    SimpleDrawWindow win(1024, 768, background);
-    win.Run();
-
-    return static_cast<int>(kwr::ReturnCode::Success);
+    return 0;
 }
 

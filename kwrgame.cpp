@@ -1,6 +1,6 @@
 #include "kwrgame.h"
 
-namespace kwr {
+namespace kwr::game {
 
 HitBox HitBox::MovedBy(int x, int y) const
 {
@@ -19,15 +19,10 @@ bool HitBox::CollidesWith(const HitBox& target) const
 //---------------------------------------------------------------------- 
 //       Sprite class
 
-Sprite::Sprite(Renderer& renderer, const BitmapSurface& bitmap) :
+Sprite::Sprite(Renderer& renderer, BitmapSurface& bitmap) :
   texture(renderer, bitmap),
   hitbox( SDL_Rect { 0, 0, bitmap->w, bitmap->h } ),
   dx(0), dy(0)
-{
-}
-
-Sprite::Sprite(Renderer& renderer, const char* filename) : 
-  Sprite(renderer, BitmapSurface(filename))
 {
 }
 
@@ -60,7 +55,7 @@ bool Sprite::WouldHit(const Sprite& target) const
 
 void Sprite::Draw(Renderer& renderer)
 {
-    SDL_RenderCopy( renderer, texture, NULL, &hitbox.rect );
+    SDL_RenderCopy( renderer.get(), texture.get(), NULL, &hitbox.rect );
 }
 
 Sprite::~Sprite() throw()
@@ -70,111 +65,73 @@ Sprite::~Sprite() throw()
 //----------------------------------------------------------------------
 //       GameDriver class
 
-GameDriver::GameDriver(const SDL_Color &bg) :
-  window(640, 480, "Hello World"),
+GameDriver::GameDriver(Dims size, SDL_Color bg, CString title) :
+  window(size, title),
   renderer(window),
-  running(false),
   background(bg)
 {
 }
 
-GameDriver::GameDriver(unsigned width, unsigned height, const SDL_Color &bg) :
-  window(width, height, "Hello World"),
-  renderer(window),
-  running(false),
-  background(bg)
-{
-}
-
-void GameDriver::Start()
+void GameDriver::start()
 {
     running = true;
 }
 
-void GameDriver::Run()
+void GameDriver::run()
 {
     try {
-        Setup();
-        Start();
+        setup();
+        start();
 
         while (running) {
 
             SDL_Event e;
-
             while (SDL_PollEvent(&e) != 0) {
-                HandleEvent(e);
+                handle(e);
             }
 
-            Update();
-            Clear();
-            Render();
+            update();
+            clear();
+            render();
 
-            SDL_RenderPresent(renderer);
+            renderer.present();
         }
 
     }
-    catch(SDLError& sdlError) {
-        fprintf( stderr, "SDLError: %s\n", sdlError.what());
+    catch(Error& error) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", error.message().cstr(), NULL);
     }
 }
 
-void GameDriver::Stop()
+void GameDriver::stop()
 {
     running = false;
 }
 
-void GameDriver::Setup()
+void GameDriver::setup()
 {
 }
 
-void GameDriver::HandleEvent(const SDL_Event& event)
+void GameDriver::handle(const SDL_Event& event)
 {
     if (event.type == SDL_QUIT) {
-        Stop();
+        stop();
     }
 }
 
-void GameDriver::Clear()
+void GameDriver::clear()
 {
-    renderer.SetColor(background);
-    SDL_RenderClear(renderer);
+    renderer.color = background;
+    renderer.clear();
 }
 
-void GameDriver::Render()
-{
-}
-
-void GameDriver::Update()
+void GameDriver::render()
 {
 }
 
-//----------------------------------------------------------------------
-//       SimpleDrawWindow class
-
-SimpleDrawWindow::SimpleDrawWindow() :
-  GameDriver( SDL_Color { 0,0,0,0 } )
+void GameDriver::update()
 {
 }
 
-SimpleDrawWindow::SimpleDrawWindow(int width, int height, const SDL_Color &bg) :
-  GameDriver(width, height, bg)
-{
-}
-
-void SimpleDrawWindow::Setup()
-{
-}
-
-void SimpleDrawWindow::HandleEvent(const SDL_Event& event)
-{
-    if (event.type == SDL_QUIT) {
-        Stop();
-    }
-}
-
-void SimpleDrawWindow::Update()
-{
-}
-
-} // kwr
+} // kwr::game
 

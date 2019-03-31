@@ -20,13 +20,11 @@
 - Functions: lowerCamelCase
 - Variables: lowercase, lower_snake_case
 - Namespaces: abbreviated lowercase, 3-5 chars.
-- #define symbols: ns_UPPER_SNAKE_CASE
-- #define macros: ns_UpperCamelCase
-- Header Include Guards: KWR_HEADER_NS_FILE_H
+- #define symbols: kwr_UPPER_SNAKE_CASE
+- #define macros: kwr_UpperCamelCase
+- Header Guards: KWR_INCLUDED_FILE_H
 
-ns = namespace
-
-## Abbrevation Conventions
+### Varible Name Abbrevations
 
 - o: object
 - i: index 
@@ -70,8 +68,7 @@ ns = namespace
 
 ## Standard Library
 
-Prefer C++11.
-
+- Prefer C++11.
 - swap, move, exchange
 - pair, tuple, tie
 - type traits
@@ -90,77 +87,59 @@ Prefer C++11.
 
 ## Object Attributes
 
-- Immutable
-- non-copyable
-- non-moveable 
-- trivial 
-- polymorphic
-- value type
-- array allocation (yes/no)
-- reference handling
+- immutable:     all methods are const.
+- primitive:     built-in types (int, char, float, bool)
+- uncopyable:    removed copy & move operations.
+- heap-only:     private constructor & factory method.
+- stack-only:    removed operators new & delete.
+- no-array:      removed operators new[] & delete[].
+- complex:       polymorphic, uncopyable, heap-only, no-array.
+
 - composite: contains other object members
-- primitive: built-in types
-- consumable: using, accessing, or processing the object will consume it value
-- Temporary: lifetime limited within code execution scope.
-- Eternal: lifetime persists during entire program execution.
-
-## Polymorphic Types
-
-- class declaration
-- Non-copyable (delete copy-ctor, copy-assign).
-- Non-moveable (delete move-ctor, move-assign)
-- No array allocation (delete new[] and delete[])
-- Reference/pointer handling only.
+- trivial 
 - virtual destructor
-
-## Simple Types
-
-- struct declaration
-- primitive and simple members only
-- no virtual methods
-- array allocation allowed
-- Prefer is_trivial 
+- value type
+- reference handling
+- consumable: using, accessing, or processing the object will consume its value
+- temporary: lifetime limited within code execution scope.
+- eternal: lifetime persists during entire program execution.
 
 ## Common Object Operations
 
 - compare
 - clone
+- swap
+- move
 - print 
 - save
 - load
 
-## Mem
+## Resource Handles
 
-Pointer/size pair to memory.
+Manage buffers, files, objects, etc that must be disposed.
 
-- data      raw pointer to memory
-- size      size of memory
+- uncopyable, stack-only
+- swap, move
+- dispose:     Delete & nullify resource
+- release:     Nullify & return raw resource
+- reset:       Delete & assign to new raw resource
+- destructor:  Dispose
+- empty:       No resource, null.
+- op !         empty
+- bool cast    !empty
 
-## Resource
+### Object Handle Operations
 
-Buffers, files, objects.
+- raw         Raw pointer, unchecked.
+- op->        Member access, checked.
+- op *        Deref to object reference, checked.
 
-Copy ctr & op deleted to avoid implicit copy by value
-
-- dispose     Delete & nullify
-- release     Nullify & return raw resource
-- reset       Delete & assign new raw resource
-- swap        Exchange resource with another
-- move        Dispose & take resource
-- Destructor  Dispose
-
-### Handle Operations
-
-- raw         Access raw pointer
-- op->        Access object member, check null
-
-### Memory Operations
+### Memory Handle Operations
 
 - data        Access Mem pointer.
 - size        Total space available.
 - length      Number of elements, <= size.
-- op[i]       Access element, check null & bounds
-
+- op[i]       Element access, checked.
 
 # Function Semantics
 
@@ -174,10 +153,10 @@ Copy ctr & op deleted to avoid implicit copy by value
 - owner         Give ownership to function.
 - optional      May be empty/null and unused.
 - span          Pointer and size of memory array.
-- output     Value returned through parameter.
-- non_null   Painter may not be null (use a reference?)
-- non_empty  Container size must be > 0.
-- ensures    Value must meet given condition, eg:
+- output        Value returned through parameter.
+- non_null      Painter may not be null (use a reference?)
+- non_empty     Container size must be > 0.
+- ensures       Value must meet given condition, eg:
   - positive     (value > 0)
   - negative     (value < 0)
   - non-zero     (value != 0)
@@ -190,7 +169,7 @@ Copy ctr & op deleted to avoid implicit copy by value
 - optional        Return may contain value or be empty/null.
 - unique_ptr      Return ownership to caller.
 - required        Caller must receive and assign value.
-- Error code
+- status          Return a value or status code.
 
 - moveable objects
 - auto-delete ignored resources
@@ -203,7 +182,7 @@ AString
 : Mutable, fixed length.
 
 CString
-: Constant/Static string for parameters and compile-time literals like `"hello world"`.
+: Constant null-terminated string for parameters and literals.
 : Immutable, fixed length.
 
 DString
@@ -212,16 +191,15 @@ DString
 
 ## Generic String Accessors
 
-- length()
-- size()
 - cstr()
+- length()
 - empty()
 - operator!()
 
 ## String Operations
 
 - split(s)
-- hash
+- hash(s)
 
 ## String Modifiers
 

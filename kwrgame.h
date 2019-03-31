@@ -3,7 +3,7 @@
 
 #include "kwrsdl.h"
 
-namespace kwr {
+namespace kwr::game {
 
 struct HitBox {
 
@@ -25,8 +25,7 @@ struct HitBox {
 
 class Sprite {
   public:
-    explicit Sprite(Renderer& renderer, const BitmapSurface& bitmap);
-    explicit Sprite(Renderer& renderer, const char* filename);
+    explicit Sprite(Renderer& renderer, BitmapSurface& bitmap);
     void MoveTo(int x, int y);
     void Move();
     void SetVelocityX(int v);
@@ -45,41 +44,29 @@ class GameDriver {
 
   public:
 
-    explicit GameDriver(const SDL_Color &bg);
-    explicit GameDriver(unsigned w, unsigned h, const SDL_Color &bg);
+    GameDriver(Dims size, SDL_Color bg, CString title);
 
-    void Start();
-    void Run();
-    void Stop();
+    void start();
+    void run();
+    void stop();
 
-    virtual void Setup();
-    virtual void HandleEvent(const SDL_Event& event);
-    virtual void Update();
-    virtual void Clear();
-    virtual void Render();
+    virtual void setup();
+    virtual void handle(const SDL_Event& event);
+    virtual void update();
+    virtual void clear();
+    virtual void render();
 
   private:
 
-    SDLInitialize sdlInit;
-    bool running;
+    SDL_Library sdl_lib;
+    TTF_Library ttf_lib;
     SDL_Color background;
+    bool running = false;
 
   protected:
 
     Window window;
     Renderer renderer;
-};
-
-class SimpleDrawWindow : public GameDriver {
-
-  public:
-
-    SimpleDrawWindow();
-    SimpleDrawWindow(int width, int height, const SDL_Color &bg);
-    virtual void Setup();
-    virtual void HandleEvent(const SDL_Event& event);
-    virtual void Update();
-
 };
 
 }  // kwr
