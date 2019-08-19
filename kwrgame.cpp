@@ -1,6 +1,29 @@
 #include "kwrgame.h"
+#include "kwrerr.h"
 
 namespace kwr::game {
+
+RGB rgb(HSL hsl)
+{
+    double a = hsl.saturation * std::min(hsl.luminance, 1.0-hsl.luminance);
+
+    auto f = [hsl, a](double n) -> double 
+    {
+        double k = fmod(n + hsl.hue/30.0, 12.0);
+        return hsl.luminance - (a * std::max( min(k-3.0, 9.0-k, 1.0), -1.0));
+    };
+
+    return RGB { f(0), f(8), f(4) };
+}
+
+SDL_Color sdlcol(RGB rgb)
+{
+    return { 
+        (Uint8)(rgb.red   * 255.0),
+        (Uint8)(rgb.green * 255.0),
+        (Uint8)(rgb.blue  * 255.0)
+    };
+}
 
 HitBox HitBox::MovedBy(int x, int y) const
 {
@@ -20,7 +43,7 @@ bool HitBox::CollidesWith(const HitBox& target) const
 //       Sprite class
 
 Sprite::Sprite(Renderer& renderer, BitmapSurface& bitmap) :
-  texture(renderer, bitmap),
+  //texture(renderer, bitmap),
   hitbox( SDL_Rect { 0, 0, bitmap->w, bitmap->h } ),
   dx(0), dy(0)
 {
@@ -66,9 +89,9 @@ Sprite::~Sprite() throw()
 //       GameDriver class
 
 GameDriver::GameDriver(Dims size, SDL_Color bg, CString title) :
+  background(bg),
   window(size, title),
-  renderer(window),
-  background(bg)
+  renderer(window)
 {
 }
 
@@ -99,7 +122,7 @@ void GameDriver::run()
 
     }
     catch(Error& error) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", error.message().cstr(), NULL);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", error.what.cstr(), NULL);
     }
 }
 

@@ -1,15 +1,16 @@
 #include "kwrsdl.h"
+#include "kwrerr.h"
 
 namespace kwr::game { 
 
 void check(bool passes)
 {
-    if (!passes) throw Error();
+    if (!passes) throw Fault(kwr_FileLine, SDL_GetError(), "Fault");
 }
 
 void check(int code)
 {
-    check(code == 0);
+    if (code) throw Fault(kwr_FileLine, SDL_GetError(), "Fault");
 }
 
 SDL_Library::SDL_Library()
@@ -57,9 +58,7 @@ Window::~Window()
 BitmapSurface::BitmapSurface(const char* filename) :
   surface(SDL_LoadBMP(filename))
 {
-    if (!surface) {
-        throw Error();
-    }
+    check(surface);
 }
 
 BitmapSurface::~BitmapSurface() throw()
@@ -73,10 +72,15 @@ Renderer::Renderer(Window& window) :
   renderer( SDL_CreateRenderer(window.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC) ),
   color(*this)
 {
-    //renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    if (renderer == NULL) {
-        throw Error();
-    }
+    check(renderer);
+}
+
+
+Dims Renderer::size()
+{
+    Dims dims;
+    check( SDL_GetRendererOutputSize(renderer, &dims.width, &dims.height) );
+    return dims;
 }
 
 void Renderer::set(const SDL_Color& color)
@@ -89,9 +93,9 @@ void Renderer::clear()
     SDL_RenderClear(renderer);
 }
 
-void Renderer::draw(SDL_Rect& rect)
+void Renderer::draw(SDL_Rect rect)
 {
-    SDL_RenderDrawRect(renderer, &rect);
+    check( SDL_RenderDrawRect(renderer, &rect) );
 }
 
 void Renderer::draw(class Texture& tex, SDL_Point pt)
@@ -101,9 +105,36 @@ void Renderer::draw(class Texture& tex, SDL_Point pt)
     SDL_RenderCopy(renderer, tex.get(), NULL, &rect);
 }
 
+void Renderer::draw(SDL_Point p1, SDL_Point p2)
+{
+    check( SDL_RenderDrawLine(renderer, p1.x, p1.y, p2.x, p2.y) );
+}
+
+void Renderer::draw(CString text, SDL_Point pt, Font& font)
+{
+    SDL_Color color;
+    check( SDL_GetRenderDrawColor(renderer, &color.r, &color.g, &color.b, &color.a) );
+
+    Surface surface(font.wrap(text, color, size().width - pt.x));
+    Texture tex( textureFrom(surface) );
+    draw(tex, pt);
+}
+
+void Renderer::fill(SDL_Rect rect)
+{
+    check( SDL_RenderFillRect(renderer, &rect) );
+}
+
 void Renderer::present()
 {
     SDL_RenderPresent(renderer);
+}
+
+SDL_Texture* Renderer::textureFrom(Surface& surface)
+{
+    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surface.get());
+    check(tex);
+    return tex;
 }
 
 Renderer::~Renderer() throw()
@@ -115,32 +146,8 @@ Surface::Surface(SDL_Surface* s) : surface(s) {}
 Surface::~Surface() { SDL_FreeSurface(surface); }
 SDL_Surface* Surface::get() { return surface; }
 
-Texture::Texture(Renderer& renderer, Surface& surface)
-{
-    create(renderer, surface);
-}
 
-Texture::Texture(Renderer& renderer, SDL_Surface* sourceSurface) :
-  texture(NULL)
-{
-    CreateFrom(renderer, sourceSurface);
-}
-
-void Texture::create(Renderer& renderer, Surface& surface)
-{
-    // TODO: require texture is NULL
-    check( texture = SDL_CreateTextureFromSurface( renderer.get(), surface.get() ) );
-}
-
-void Texture::CreateFrom(Renderer& renderer, SDL_Surface* sourceSurface)
-{
-    // TODO: require texture is NULL
-    texture = SDL_CreateTextureFromSurface( renderer.get(), sourceSurface );
-    // TODO: ensure texture is not NULL
-    if (!texture) {
-        throw Error();
-    }
-}
+Texture::Texture(SDL_Texture* tex) : texture(tex) {}
 
 Texture::~Texture()
 {
@@ -155,20 +162,51 @@ Dims Texture::size()
 }
 
 Font::Font(CString fontname, int size) : 
-  font(TTF_OpenFont(fontname.cstr(), 25))
+  font(TTF_OpenFont(fontname.cstr(), size))
 {
-    if (!font) throw Error();
+    check(font);
 } 
+
+Dims Font::size(CString text)
+{
+    Dims result;
+    TTF_SizeUTF8(font, text.cstr(), &result.width, &result.height);
+    return result;
+}
 
 Font::~Font()
 {
     TTF_CloseFont(font);
 }
 
-SDL_Surface* Font::Render(CString text, SDL_Color color)
+SDL_Surface* Font::solid(CString text, SDL_Color color)
 {
-    return TTF_RenderText_Solid(font, text.cstr(), color);
+    SDL_Surface* surface = TTF_RenderUTF8_Solid(font, text.cstr(), color);
+    check(surface);
+    return surface;
 }
+
+SDL_Surface* Font::shade(CString text, SDL_Color forecol, SDL_Color backcol)
+{
+    SDL_Surface* surface = TTF_RenderUTF8_Shaded(font, text.cstr(), forecol, backcol);
+    check(surface);
+    return surface;
+}
+
+SDL_Surface* Font::blend(CString text, SDL_Color color)
+{
+    SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.cstr(), color);
+    check(surface);
+    return surface;
+}
+
+SDL_Surface* Font::wrap(CString text, SDL_Color color, int width)
+{
+  SDL_Surface* surface = TTF_RenderUTF8_Blended_Wrapped(font, text.cstr(), color, width);
+  check(surface);
+  return surface;
+}
+
 
 } // kwr::game
 

@@ -7,11 +7,34 @@ namespace kwr {
 bool on = true;
 bool off = false;
 
+int compare(const String& leftstr, const String& rightstr)
+{
+    const char* left  = leftstr.empty()?  "": leftstr.cstr();
+    const char* right = rightstr.empty()? "": rightstr.cstr();
+    int   maxlen = std::min(leftstr.length(), rightstr.length());
+    return std::strncmp(left, right, maxlen);
+}
+
+bool operator==(const String& leftstr, const String& rightstr)
+{
+    return !compare(leftstr, rightstr);
+}
+
+const char* BString::emptystr = "";
+
+int BString::compare(const BString& that) const
+{
+    const char* left  = beginstr? beginstr: "";
+    const char* right = that.beginstr? that.beginstr: "";
+    int   maxlen = std::min(length(), that.length()); 
+    return std::strncmp(left, right, maxlen);
+}
+
 int CString::compare(const CString& that) const
 {
-    const char* left  = strdata? strdata : "";
-    const char* right = that.strdata? that.strdata : "";
-    int   maxlen = std::min(length(), that.length()) + 1; 
+    const char* left  = str? str : "";
+    const char* right = that.str? that.str: "";
+    int   maxlen = std::min(length(), that.length()); 
     return std::strncmp(left, right, maxlen);
 }
 
@@ -20,8 +43,21 @@ bool operator==(const CString& lhs, const CString& rhs)
     return !lhs.compare(rhs);
 }
 
-int OutStream::print(CString s)      { return file? fprintf(file, "%s.*", s.length(), (const char*)s): 0; }
+template<> int scan<int>(const String& s)
+{
+    return atoi(s.cstr());
+}
+
+template<> BString scan<BString>(const String& s)
+{
+    const char* str = s.cstr();
+    return BString(str, str+s.length());
+}
+
+int OutStream::print(const String& s) { return file? fprintf(file, "%s.*", s.length(), s.cstr()): 0; }
+int OutStream::print(CString s)      { return file? fprintf(file, "%s.*", s.length(), s.cstr()): 0; }
 int OutStream::print(int i)          { return file? fprintf(file, "%d", i): 0; }
+int OutStream::print(unsigned int i) { return file? fprintf(file, "%u", i): 0; }
 int OutStream::print(double d)       { return file? fprintf(file, "%f", d): 0; }
 int OutStream::print(bool b)         { return file? fprintf(file, "%s", b? "true" : "false"): 0; }
 int OutStream::print(char c)         { return file? fprintf(file, "%c", c): 0; }
@@ -62,7 +98,7 @@ OutStream& OutStream::null()
 
 int print(Sequence& sequence, OutStream& out)
 {
-    while (sequence.pending()) {
+    while (sequence.more()) {
         sequence.print(out);
         sequence.next();
     }
@@ -70,15 +106,9 @@ int print(Sequence& sequence, OutStream& out)
 
 void SourcePoint::print(OutStream& out) const
 {
-    out.print("%s:%d: ", (const char*)filename, line);
+    out.print("%s:%d: ", filename.cstr(), line);
 }
 
-
-void TestFailure::print(OutStream& out) const
-{
-    source.print(out);
-    out.print("failure: %s\n", message.cstr());
-}
 
 const CString TestCase::name() const 
 {
@@ -88,11 +118,6 @@ const CString TestCase::name() const
 void TestCase::print(OutStream& out) const 
 {
     out.print("Test case: %s\n", name().cstr()); 
-}
-
-void TestCase::fail(SourcePoint source, CString message)
-{
-    throw TestFailure { source, message };
 }
 
 GStackSequence<TestCase> TestCase::sequence()
@@ -180,20 +205,23 @@ void WatchTrace::print(OutStream& out) const
     out.print('\n');
 }
 
-void AssertHandler::fail(SourcePoint source, CString message)
-{
-    auto errout = OutStream::error();
-    Trace(source, "Assertion", message).print(errout);
-    errout.print("Backtrace begin.\n");
-    auto trace = Trace::backtrace();
-    kwr::print(trace, errout);
-    errout.print("Backtrace end.\n");
-    std::abort();
-}
-
 GStackSequence<Trace> Trace::backtrace()
 {
     return GStackSequence<Trace>();
+}
+
+void Options::getargs(int argc, char* args[], char separator)
+{
+    int argnum = 1;
+    while (argnum < argc) {
+        Argument arg { args[argnum], "", "" };
+        if (Result r = arg.param.find(separator)) {
+            arg.name  = arg.param.take(r);
+            arg.value = arg.param.drop(1+r);
+        }
+        set(arg);
+        ++argnum;
+    }
 }
 
 } // kwr namespace

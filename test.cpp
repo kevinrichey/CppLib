@@ -3,17 +3,18 @@
 #include <exception>
 
 #include "kwrlib.h"
+#include "kwrerr.h"
 
 using namespace kwr;
 
 kwr_TestCase(PassingTrue)
 {
-    kwr_Test(true);
+    kwr_test(true);
 }
 
 kwr_TestCase(FailingFalse)
 {
-    //kwr_Test(false);
+    //kwr_test(false);
 }
 
 class CStringTest : public kwr::TestCase {
@@ -27,36 +28,36 @@ class CStringTest : public kwr::TestCase {
 
     void passString(kwr::CString str) 
     {
-        kwr_Test(str == kwr::CString("world")); 
+        kwr_test(str == kwr::CString("world")); 
     }
 
     virtual void run() 
     {
         // Default constructor
         kwr::CString nullstr;
-        kwr_Test(nullstr.length() == 0);
-        kwr_Test(nullstr.empty());
+        kwr_test(nullstr.length() == 0);
+        kwr_test(nullstr.empty());
 
         // Literal CString constructor
         kwr::CString literal("xyzzy");
-        kwr_Test(literal.length() == 5);
-        kwr_Test(literal == "xyzzy");
-        kwr_Test(!literal.empty());
+        kwr_test(literal.length() == 5);
+        kwr_test(literal == "xyzzy");
+        kwr_test(!literal.empty());
 
         // Copy constructor
         kwr::CString copy(literal);
-        kwr_Test(copy.cstr() == literal.cstr());
-        kwr_Test(copy == "xyzzy");
+        kwr_test(copy.cstr() == literal.cstr());
+        kwr_test(copy == "xyzzy");
 
         // Copy assignment operator
         kwr::CString assigned;
         assigned = literal;
-        kwr_Test(assigned == "xyzzy");
-        kwr_Test(assigned.cstr() == literal.cstr());
+        kwr_test(assigned == "xyzzy");
+        kwr_test(assigned.cstr() == literal.cstr());
 
         // Return value
         kwr::CString hello( getString() );
-        kwr_Test(hello == "hello");
+        kwr_test(hello == "hello");
 
         // Implicit constructor
         passString("world");
@@ -64,7 +65,7 @@ class CStringTest : public kwr::TestCase {
         // Implicit assignment
         kwr::CString implicit;
         implicit = "implied";
-        kwr_Test(implicit == "implied");
+        kwr_test(implicit == "implied");
     }
 } kwr_TestCase_CStringTest;
 
@@ -72,22 +73,19 @@ kwr_TestCase(ArrayTest)
 {
     // Default constructor
     Array<int> nullArray;
-    kwr_Test(nullArray.size() == 0);
-    kwr_Test(nullArray.empty());
-    kwr_Test(!nullArray);
-    kwr_Test(false == nullArray);
+    kwr_test(nullArray.size() == 0);
+    kwr_test(nullArray.empty());
     
     // Allocate constructor
     Array<int> tenints(10);
-    kwr_Test(tenints.size() == 10);
-    kwr_Test(!tenints.empty());
-    kwr_Test(true == tenints);
+    kwr_test(tenints.size() == 10);
+    kwr_test(!tenints.empty());
 
     // Accessor
     for (int i = 0; i < tenints.size(); ++i) {
         tenints[i] = (i+1) * 10;
     }
-    kwr_Test(50 == tenints[4]);
+    kwr_test(50 == tenints[4]);
 
 
     // Swap
@@ -97,41 +95,41 @@ kwr_TestCase(ArrayTest)
     for (int i = 0; i < b.size(); ++i) b[i] = 'f' + i;
     a.swap(b);
 
-    kwr_Test(b[0] == 'a');
-    kwr_Test(b[1] == 'b');
-    kwr_Test(b[2] == 'c');
-    kwr_Test(b[3] == 'd');
-    kwr_Test(b[4] == 'e');
+    kwr_test(b[0] == 'a');
+    kwr_test(b[1] == 'b');
+    kwr_test(b[2] == 'c');
+    kwr_test(b[3] == 'd');
+    kwr_test(b[4] == 'e');
 
-    kwr_Test(a[0] == 'f');
-    kwr_Test(a[1] == 'g');
-    kwr_Test(a[2] == 'h');
-    kwr_Test(a[3] == 'i');
-    kwr_Test(a[4] == 'j');
+    kwr_test(a[0] == 'f');
+    kwr_test(a[1] == 'g');
+    kwr_test(a[2] == 'h');
+    kwr_test(a[3] == 'i');
+    kwr_test(a[4] == 'j');
 
     // Move
     Array<char> m(5);
     for (int i = 0; i < m.size(); ++i) m[i] = 'k' + i;
-    kwr_Test(m[0] == 'k');
-    kwr_Test(m[1] == 'l');
-    kwr_Test(m[2] == 'm');
-    kwr_Test(m[3] == 'n');
-    kwr_Test(m[4] == 'o');
+    kwr_test(m[0] == 'k');
+    kwr_test(m[1] == 'l');
+    kwr_test(m[2] == 'm');
+    kwr_test(m[3] == 'n');
+    kwr_test(m[4] == 'o');
 
     m.move(a);
-    kwr_Test(!a);
-    kwr_Test(m[0] == 'f');
-    kwr_Test(m[1] == 'g');
-    kwr_Test(m[2] == 'h');
-    kwr_Test(m[3] == 'i');
-    kwr_Test(m[4] == 'j');
+    kwr_test(a.empty());
+    kwr_test(m[0] == 'f');
+    kwr_test(m[1] == 'g');
+    kwr_test(m[2] == 'h');
+    kwr_test(m[3] == 'i');
+    kwr_test(m[4] == 'j');
 
     // Dispose
     Array<int> d(10);
-    kwr_Test(10 == d.size());
+    kwr_test(10 == d.size());
     d.dispose();
-    kwr_Test(0 == d.size());
-    kwr_Test(!d);
+    kwr_test(0 == d.size());
+    kwr_test(d.empty());
 
     // Release
     // I know this would leak if the test fails.
@@ -140,11 +138,11 @@ kwr_TestCase(ArrayTest)
     r[0] = 'p';
     r[1] = 'q';
     r[2] = 'r';
-    kwr_Test(3 == r.size());
+    kwr_test(3 == r.size());
     auto rspan = r.release();
-    kwr_Test(!r);
-    kwr_Test(3 == rspan.size);
-    kwr_Test('r' == rspan.data[2]);
+    kwr_test(r.empty());
+    kwr_test(3 == rspan.size);
+    kwr_test('r' == rspan.data[2]);
     delete[] rspan.data;
 
     // Reset
@@ -161,25 +159,133 @@ kwr_TestCase(ArrayTest)
     sspan.data[4] = 'z';
     
     s.reset(sspan);
-    kwr_Test(s.size() == 5);
-    kwr_Test('v' == s[0]);
-    kwr_Test('w' == s[1]);
-    kwr_Test('x' == s[2]);
-    kwr_Test('y' == s[3]);
-    kwr_Test('z' == s[4]);
+    kwr_test(s.size() == 5);
+    kwr_test('v' == s[0]);
+    kwr_test('w' == s[1]);
+    kwr_test('x' == s[2]);
+    kwr_test('y' == s[3]);
+    kwr_test('z' == s[4]);
 
-    kwr_Test(0 == sspan.size);
-    kwr_Test(nullptr == sspan.data);
+    //kwr_test(0 == sspan.size);
+    //kwr_test(nullptr == sspan.data);
     
     // Negative size
     //Array<char> f(-10);
 }
 
+namespace kwr {
 
+class File
+{
+  public:
+    enum Mode { In, Out };
+
+    File(CString name, CString mode) 
+    {
+        handle = fopen(name.cstr(), mode.cstr());
+        if (!handle)
+        {
+            throw Fault(kwr_FileLine, strerror(errno));
+        }
+    }
+
+    template<typename T>
+    int read(T* data, int count=1)
+    {
+        return fread(data, sizeof(T), count, handle);
+    }
+
+    ~File() { if (!handle) fclose(handle); }
+
+  private:
+    FILE*   handle;
+};
+
+}
+
+kwr_TestCase(FileTest)
+{
+    int size = 25;
+    File file("fortytwo.txt", "r");
+    char text[50];
+    int count = file.read(text, size);
+    text[count] = '\0';
+
+    kwr_test(size == count);
+    kwr_test(CString("Life Universe Everything\n") == CString(text));
+}
+
+kwr_TestCase(KwrErr)
+{
+    EventHandler* handler = Defect::handler;
+
+    try {
+        int x = 1;
+        int line = 0;
+
+        ThrowHandler thrower;
+        Defect::handler = &thrower;
+
+        try {
+            line = __LINE__+1;
+            kwr_require(x == 2);
+            kwr_test(!"Defect not thrown");
+        }
+        catch (Defect& defect) {
+            kwr_test(defect.what == "x == 2");
+            kwr_test(defect.where.line == line);
+            kwr_test(defect.where.filename == __FILE__);
+        }
+    }
+    catch(...) {
+        Defect::handler = handler;
+        throw;
+    }
+}
+
+void bstringParam(BString bstr)
+{
+    kwr_test(!bstr.empty());
+    kwr_test(bstr.length() == 5);
+    kwr_test(!strcmp(bstr.cstr(), "xyzzy"));
+}
+
+kwr_TestCase(BStringTest)
+{
+    BString defctr;
+    kwr_test(defctr.empty());
+    kwr_test(defctr.length() == 0);
+    kwr_test(!strcmp(defctr.cstr(), ""));
+
+    BString strctr("xyzzy");
+    kwr_test(!strctr.empty());
+    kwr_test(strctr.length() == 5);
+    kwr_test(!strcmp(strctr.cstr(), "xyzzy"));
+
+    const char* text = "one two three 456";
+    BString one(text, text+3);
+    kwr_test(!one.empty());
+    kwr_test(one.length() == 3);
+    kwr_test(!strncmp(one.cstr(), "one", one.length()));
+
+    BString onecmp("one");
+    kwr_test(!one.compare(one));
+
+    const char* s = text+14;
+    const char* e = s;
+    while (*e++);
+    BString numbers(s, e);
+    kwr_test(atoi(numbers.cstr()) == 456);
+}
 
 int main(int argc, char* argv[])
 { 
     auto console = kwr::OutStream::console();
+
+    ThrowHandler thrower;
+    Failure::handler = &thrower;
+    Defect::handler = &thrower;
+    Fault::handler = &thrower;
 
     console.print("Run Tests\n");
 
@@ -187,25 +293,25 @@ int main(int argc, char* argv[])
     int failures = 0;
     auto test = kwr::TestCase::sequence();
 
-    while (test.pending()) {
+    while (test.more()) {
         ++count;
         try {
             test->run();
         }
-        catch (kwr::TestFailure& failure) {
+        catch (kwr::Error& error) {
             ++failures;
             test->print(console);
-            failure.print(console);
-        }
-        catch (kwr::Failure& failure) {
-            ++failures;
-            test->print(console);
-            console.print("Assertion failure!  %s\n", failure.message);
+            error.print(console);
         }
         catch (std::exception& except) {
             ++failures;
             test->print(console);
-            console.print("exception: %s\n", except.what());
+            console.print("std::exception: %s\n", except.what());
+        }
+        catch (...) {
+            ++failures;
+            test->print(console);
+            console.print("Unknown exception.\n");
         }
         test.next();
     }

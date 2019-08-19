@@ -15,7 +15,7 @@ ComplimentaryMultiplyWithCarry::ComplimentaryMultiplyWithCarry(uint32_t seed)
   while (c = minstd() >= cMax) {}
 }
 
-uint32_t ComplimentaryMultiplyWithCarry::operator()() 
+void ComplimentaryMultiplyWithCarry::next()
 {
   uint64_t t;
   uint32_t x;
@@ -26,11 +26,11 @@ uint32_t ComplimentaryMultiplyWithCarry::operator()()
   x = t + c; 
 
   if (x < c) {
-    x++;
-    c++;
+    ++x;
+    ++c;
   }
 
-  return (Q[i] = r - x);    
+  Q[i] = r - x;
 }
 
 uint32_t ComplimentaryMultiplyWithCarry::max() const 

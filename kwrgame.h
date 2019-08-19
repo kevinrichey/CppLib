@@ -5,6 +5,14 @@
 
 namespace kwr::game {
 
+struct RGB { double red, green, blue; };
+
+struct HSL { double hue, saturation, luminance; };
+
+RGB rgb(HSL hsl);
+
+SDL_Color sdlcol(RGB rgb);
+
 struct HitBox {
 
     SDL_Rect rect;
@@ -58,8 +66,6 @@ class GameDriver {
 
   private:
 
-    SDL_Library sdl_lib;
-    TTF_Library ttf_lib;
     SDL_Color background;
     bool running = false;
 

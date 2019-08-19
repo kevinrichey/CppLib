@@ -1,12 +1,21 @@
 #pragma once
 
 #include <cstdint>
-//#include <cmath>
+#include "kwrlib.h"
 
 //======================================================================
 // Pseudo-Random Number Generation
 
 namespace kwr {
+
+class RandomSequence : public Sequence {
+  public:
+    virtual uint32_t get() const =0;
+    virtual bool more() const { return true; }
+    virtual void print(OutStream&) const {}
+    virtual ~RandomSequence() = default;
+};
+
 
 /* XorShift template options
    | 1, 3,10| 1, 5,16| 1, 5,19| 1, 9,29| 1,11, 6| 1,11,16| 1,19, 3| 1,21,20| 1,27,27|
@@ -21,20 +30,23 @@ namespace kwr {
    */
 
 template <int a, int b, int c>
-class XorShift
+class XorShift : public RandomSequence
 {
   public:   
     typedef uint32_t Type;
 
     explicit XorShift(uint32_t s) throw() : seed(s) {}
 
-    inline uint32_t operator()() 
+    virtual uint32_t get() const { return seed; }
+
+    virtual void next()
     {
         seed ^= (seed << a);
         seed ^= (seed >> b);
         seed ^= (seed << c);
-        return seed;
     }
+
+    inline uint32_t operator()() { next(); return get(); }
 
   private:
     uint32_t seed;
@@ -49,7 +61,10 @@ class LinearCongruentialGenerator
     typedef uint32_t Type;
 
     explicit LinearCongruentialGenerator(uint32_t seed) : x(seed) {}
-    inline uint32_t operator()() { return x = ((uint64_t)a * x + c) % m; }
+    inline uint32_t operator()() { next(); return get(); }
+
+    virtual uint32_t get() const { return x; }
+    virtual void next() { x = ((uint64_t)a * x + c) % m; }
 
   private:
     uint32_t x = 1;
@@ -59,13 +74,15 @@ typedef LinearCongruentialGenerator<48271U,0U,2147483647U> MINSTD;
 typedef LinearCongruentialGenerator<69069U,362437U,2147483647U> MarsagliaLCG;
 
 // https://en.wikipedia.org/wiki/Multiply-with-carry
-class ComplimentaryMultiplyWithCarry
+class ComplimentaryMultiplyWithCarry : public RandomSequence
 {
   public:
     typedef uint32_t Type;
 
     ComplimentaryMultiplyWithCarry(uint32_t seed);
-    uint32_t operator()();
+    uint32_t operator()() { next(); return get(); }
+    virtual uint32_t get() const { return Q[i]; }
+    virtual void next();
     uint32_t max() const;
 
   private:
@@ -80,19 +97,19 @@ class ComplimentaryMultiplyWithCarry
     uint32_t i = qSize - 1;
 };
 
-class RandomUniform
+class RandomUniform : public RandomSequence
 {
   public:
     typedef uint32_t Type;
 
-    RandomUniform(Type lower, Type end) :
-      dist(end - lower), start(lower) 
+    RandomUniform(Type lower, Type end, RandomSequence* rnd) :
+      start(lower), dist(end - lower), prng(rnd) 
     {
         // Require lower < end
     }
 
-    template<typename PRNG>
-    Type operator()(PRNG& prng)
+    template <typename PRNG>
+    Type operator()(PRNG& prng) 
     {
         if (!dist) return start;
         Type r;
@@ -100,9 +117,24 @@ class RandomUniform
         return start + (r % dist);
     }
 
+    virtual uint32_t get() const { return value; }
+
+    virtual void next()
+    {
+        if (dist) {
+            do {
+                prng->next();
+            }
+            while (prng->get() < threshold);
+            value = start + (prng->get() % dist);
+        }
+    }
+
   private:
     Type start, dist;
     Type threshold = dist ? -dist % dist : dist;
+    RandomSequence* prng;
+    Type value = 0;
 };
 
 class RandomDouble

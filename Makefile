@@ -3,16 +3,21 @@
 
 #ACTIVE_TARGET = testsdl
 #ACTIVE_TARGET = test
-ACTIVE_TARGET = hello
+#ACTIVE_TARGET = hello
+#ACTIVE_TARGET = sidewinder
+ACTIVE_TARGET = sidewinder
 
 # Source Files
 
-HELLO_SOURCE = hello.cpp kwrlib.cpp kwrsdl.cpp kwrgame.cpp
-TEST_SOURCE = test.cpp kwrlib.cpp
-KWR_SOURCE = kwrsdl.cpp kwrgame.cpp kwrprng.cpp kwrlib.cpp
+KWR_SOURCE = kwrsdl.cpp kwrerr.cpp kwrgame.cpp kwrlib.cpp kwrlegocolors.cpp kwrprng.cpp
+HELLO_SOURCE = hello.cpp kwrlib.cpp kwrerr.cpp kwrsdl.cpp kwrgame.cpp kwrlegocolors.cpp
+MAZE_SOURCE = $(KWR_SOURCE) 
+DRAWTEXT_SRC = $(KWR_SOURCE) drawtext.cpp
+TEST_SOURCE = test.cpp kwrlib.cpp kwrerr.cpp
 
 TEST_OBJ = $(TEST_SOURCE:.cpp=.o)
 HELLO_OBJ = $(HELLO_SOURCE:.cpp=.o)
+MAZE_OBJ = $(MAZE_SOURCE:.cpp=.o)
 
 # C++ Compiler Options
 
@@ -53,8 +58,13 @@ tags: $(HELLO_SOURCE)
 
 hello: $(HELLO_OBJ)
 
+drawtext: $(DRAWTEXT_SRC)
+
 test: $(TEST_OBJ) 
 
+bintreemaze: $(MAZE_OBJ)
+
+sidewinder: $(MAZE_OBJ)
 
 testsdl: testsdl.cpp kwrgame.cpp kwrsdl.cpp
 
@@ -89,5 +99,7 @@ clean:
 
 # Include the .d dependency files
 
+include $(wildcard $(KWR_SOURCE:.cpp=.d))
 include $(wildcard $(HELLO_SOURCE:.cpp=.d))
 include $(wildcard $(TEST_SOURCE:.cpp=.d))
+include $(wildcard $(MAZE_SOURCE:.cpp=.d))

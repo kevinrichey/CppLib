@@ -7,17 +7,6 @@
 
 namespace kwr::game {
 
-class Error {
-  public:
-    Error(int code=0) : errCode(code), errMessage(SDL_GetError()) {}
-    int     code() const { return errCode; }
-    CString message() const { return errMessage; }
-
-  private:
-    int     errCode;
-    CString errMessage;
-};
-
 void check(bool passes);
 void check(int code);
 
@@ -42,7 +31,7 @@ class TTF_Library {
 
 struct Dims { int width, height; };
 
-class Window : public Complex {
+class Window : public Object {
   public:
     Window(Dims dimensions, CString title);
     SDL_Window* get() { return window; }
@@ -65,15 +54,62 @@ class Property {
     ClassType& object;
 };
 
-class Renderer : public Complex {
+class Surface : public Object {
+  public:
+    Surface(SDL_Surface* s);
+    ~Surface();
+    SDL_Surface* get();
+
+    /// TODO: swap, move, dispose, reset, release
+
+  private:
+    SDL_Surface* surface = nullptr;
+};
+
+class Texture : public Object {
+  public:
+    Texture() = default;
+    Texture(SDL_Texture* tex);
+    SDL_Texture* get() { return texture; }
+    Dims size();
+    ~Texture() throw();
+
+    /// TODO: swap, move, dispose, reset, release
+
+  private:
+    SDL_Texture* texture = nullptr;
+};
+
+class Font : public Object {
+  public:
+    Font(CString fontname, int size);
+    Dims size(CString text);
+    SDL_Surface* solid(CString text, SDL_Color color);
+    SDL_Surface* shade(CString text, SDL_Color forecol, SDL_Color backcol);
+    SDL_Surface* blend(CString text, SDL_Color color);
+    SDL_Surface* wrap(CString text, SDL_Color color, int width);
+    ~Font();
+
+  private:
+    TTF_Font* font {};
+};
+
+class Renderer : public Object {
   public:
     explicit Renderer(Window& window);
     SDL_Renderer* get() { return renderer; }
+    Dims size();
     void set(const SDL_Color& color);
     void clear();
-    void draw(class Texture& tex, SDL_Point pt);
-    void draw(SDL_Rect& rect);
+    void draw(Texture& tex, SDL_Point pt);
+    void draw(SDL_Rect rect);
+    void draw(SDL_Point p1, SDL_Point p2);
+    void draw(CString text, SDL_Point pt, Font& font);
+    void fill(SDL_Rect rect);
     void present();
+
+    SDL_Texture* textureFrom(Surface& surface);
+
     ~Renderer();
 
     /// TODO: swap, move, dispose, reset, release
@@ -86,7 +122,7 @@ class Renderer : public Complex {
 
 };
 
-class BitmapSurface : public Complex {
+class BitmapSurface : public Object {
   public:
     explicit BitmapSurface(const char* filename);
     operator SDL_Surface*() { return surface; }
@@ -97,46 +133,6 @@ class BitmapSurface : public Complex {
 
   private:
     SDL_Surface* surface;
-};
-
-class Surface : public Complex {
-  public:
-    Surface(SDL_Surface* s);
-    ~Surface();
-    SDL_Surface* get();
-
-    /// TODO: swap, move, dispose, reset, release
-
-  private:
-    SDL_Surface* surface = nullptr;
-};
-
-class Texture : public Complex {
-  public:
-    Texture() = default;
-    Texture(Renderer& renderer, Surface& surface);
-    Texture(Renderer& renderer, SDL_Surface* sourceSurface);
-    SDL_Texture* get() { return texture; }
-    void create(Renderer& renderer, Surface& surface);
-    void CreateFrom(Renderer& renderer, SDL_Surface* sourceSurface);
-    Dims size();
-    ~Texture() throw();
-
-    /// TODO: swap, move, dispose, reset, release
-
-  private:
-    SDL_Texture* texture = nullptr;
-};
-
-class Font : public Complex {
-  public:
-    Font(CString fontname, int size);
-    ~Font();
-
-    SDL_Surface* Render(CString text, SDL_Color color);
-
-  private:
-    TTF_Font* font {};
 };
 
 } // kwr::game

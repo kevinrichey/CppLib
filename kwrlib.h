@@ -20,188 +20,120 @@ namespace kwr {
 extern bool on;
 extern bool off;
 
-//============================================================
-// Object Attributes
-
-class Uncopyable {
-  protected:
-    constexpr Uncopyable() = default;
-    ~Uncopyable() = default;
-
-    Uncopyable(const Uncopyable&) = delete;
-    Uncopyable& operator=(const Uncopyable&) = delete;
-};
-
-class StackOnly {
-    static void *operator new     (size_t) = delete;
-    static void *operator new[]   (size_t) = delete;
-    static void  operator delete  (void*)  = delete;
-    static void  operator delete[](void*)  = delete;
-};
-
-// Other names?  Polymorphic, Heavy, Object, HeapOnly
-class Complex : public Uncopyable {
-  protected:
-    Complex() = default;
-    virtual ~Complex() = default;
-    static void *operator new[]   (size_t) = delete;
-    static void  operator delete[](void*)  = delete;
-};
+template <typename T>
+T min(T a, T b, T c)
+{
+    return std::min( std::min(a,b), c);
+}
 
 //======================================================
-// Basic Types & Resource Handles
+// Basics
 
-class CString {
+// Disable array-new
+// static void *operator new[]   (size_t) = delete;
+// static void  operator delete[](void*)  = delete;
+
+class Object {
+  protected:
+    constexpr Object() = default;
+    virtual ~Object() = default;
+    Object(const Object&) = delete;
+    Object& operator=(const Object&) = delete;
+};
+
+class String {
   public:
-    CString(const char* str, int len) : strdata(str), strlength(len) {}
-    CString(const char* str) : CString(str, str? std::strlen(str): 0) {}
+    String() = default;
+    virtual int   length() const =0;
+    virtual bool  empty() const =0;
+    virtual const char* cstr() const =0;
+};
 
-    template<size_t LEN>
-    constexpr CString(const char (&literal)[LEN]) : 
-      CString(literal, LEN-1)
-    {}
+int compare(const String& leftstr, const String& rightstr);
 
+bool operator==(const String& leftstr, const String& rightstr);
+
+struct Result {
+    bool found = false;
+    int  index = 0;
+
+    operator bool() { return found; }
+    operator int()  { return index; }
+};
+
+class BString : public String {
+  public:
+    BString() = default;
+    BString(const char* s) : beginstr(s), endstr(s + std::strlen(s)) {}
+    BString(const char* b, const char* e) : beginstr(b), endstr(e) {}
+    BString(const BString& from) : beginstr(from.beginstr), endstr(from.endstr) {}
+    BString& operator=(const BString&) = default;
+
+    virtual int  length() const { return endstr-beginstr;   }
+    virtual bool empty()  const { return !beginstr  ||  beginstr == endstr; }
+    virtual const char* cstr() const { return beginstr; }
+
+    virtual int  compare(const BString& that) const;
+
+    Result find(char c)
+    {
+        const char* p = beginstr;
+        while (p < endstr  &&  *p != c) ++p;
+        return { *p == c, (int)(p - beginstr) };
+    }
+
+    BString take(int num)
+    {
+        return BString(beginstr, beginstr+num);
+    }
+
+    BString drop(int num)
+    {
+        return BString(beginstr+num, endstr);
+    }
+
+  private:
+    static const char* emptystr;
+    const char* beginstr = emptystr;
+    const char* endstr   = emptystr;
+};
+
+class CString : public String {
+  public:
     CString() = default;
+    CString(const char* s) : str(s) {}
     CString(const CString&) = default;
     CString& operator=(const CString&) = default;
 
-    const char* cstr() const { return strdata; }
-
-    int  length()  const { return strlength;     }
-    bool empty()   const { return length() == 0; }
-
-    explicit operator const char*() const { return strdata; }
-    bool operator!() const { return empty(); }
-
-    int compare(const CString& that) const;
-
-    // range
-    // sequence
+    virtual const char* cstr() const { return str; }
+    virtual int  length() const { return str? strlen(str): 0;   }
+    virtual bool empty()  const { return !str || !*str; }
+    virtual int  compare(const CString& that) const;
 
   private:
-
-    const char* strdata {};
-    int   strlength {};
+    const char* str = nullptr;
 };
-
-static_assert(std::is_trivially_copyable<CString>::value, "CString not trivial");
-
 bool operator==(const CString& lhs, const CString& rhs);
 
-template <typename T>
-class Object : public Uncopyable, public StackOnly {
-  public:
-    explicit Object(T* ptr = nullptr) : pointer(ptr) {}
-    ~Object() { delete pointer; }
-
-    bool empty() const { return pointer == nullptr; }
-
-    T*       operator->()       { return  pointer; }
-    const T* operator->() const { return  pointer; }
-    T&       operator*()        { return  pointer; }
-    const T& operator*()  const { return  pointer; }
-    bool     operator!()  const { return  empty(); }
-    operator bool()       const { return !empty(); }
-
-    void swap(Object<T>& h)  { std::swap(pointer, h.pointer); }
-    void move(Object<T>& h)  { swap(Object<T>().swap(h)); }
-    void reset(T* p)         { Object<T>(p).swap(*this); }
-    void dispose()           { Object<T>().swap(*this); }
-    T*   release()           { return std::exchange(pointer, nullptr); }
-
-  private:
-    T* pointer {};
-};
 
 template <typename T>
 struct Span {
     int size = 0;
     T*  data = nullptr;
-
-    void swap(Span<T>& other)
-    {
-        std::swap(size, other.size);
-        std::swap(data, other.data);
-    }
-
-    void move(Span<T>& from)
-    {
-        size = std::exchange(from.size, 0);
-        data = std::exchange(from.data, nullptr);
-    }
 };
 
-class Failure {
-  public:
-    Failure(CString msg) : message(msg) {}
-    CString message;
-};
+template<typename T>
+T scan(const String& s); 
 
-class ParamFailure : public Failure {
-  public:
-    ParamFailure(CString msg) : Failure(msg) {}
-};
-
-template <typename T>
-struct Positive {
-    Positive(T set) : value(set) 
-    { 
-        if (value <= 0) throw ParamFailure("parameter must be greater than zero");
-    }
-
-    T value;
-};
-
-template <typename T>
-class Array {
-  public:
-    Array() = default;
-    Array(Span<T> span) : array(span) {}
-    Array(Positive<int> newSize) : Array({newSize.value, new T[newSize.value]}) {}
-    ~Array() { delete[] array.data; array.data = nullptr; }
-
-    T& operator[](int i) { return array.data[i]; }
-    const T& operator[](int i) const { return array.data[i]; }
-
-    int  size()  const { return array.size; }
-    bool empty() const { return array.data == nullptr; }
-    bool operator!() const { return empty(); }
-    operator bool() const  { return !empty(); }
-
-    void swap(Array<T>& other)
-    {
-        array.swap(other.array);
-    }
-
-    void move(Array<T>& other)
-    {
-        array.move(other.array);
-    }
-
-    void dispose() { Array<T>().swap(*this); }
-
-    Span<T> release() 
-    {
-        Span<T> result;
-        result.swap(this->array);
-        return result;
-    }
-
-    void reset(Span<T>& span)
-    {
-        Array<T>(span).swap(*this);
-        span = Span<T>();
-    }
-
-  private:
-    Span<T> array;
-};
-
+template<> int scan<int>(const String& s);
+template<> BString scan<BString>(const String& s);
 
 class OutStream {
   public:
+    int print(const String &s);
     int print(CString s);
     int print(int i);
+    int print(unsigned int i);
     int print(double d);
     int print(bool b);
     int print(char c);
@@ -222,29 +154,11 @@ class OutStream {
 class Sequence {
   public:
     virtual void next() =0;
-    virtual bool pending() const =0;
-    virtual void print(OutStream&) const =0;
+    virtual bool more() const =0;
+    virtual void print(OutStream&) const =0;  // Don't like this, break this
     virtual ~Sequence() = default;
 };
-
 int print(Sequence& sequence, OutStream& out);
-
-class Value {
-  public:
-    virtual void print(OutStream& out) const =0;
-};
-
-template <typename T>
-class Wrapper : public Value {
-  public:
-    T data;
-
-    explicit Wrapper(const T& t) : data(t) {}
-    virtual void print(OutStream& out) const { out.print(data); }
-};
-
-template <typename T>
-Wrapper<T>* wrap(const T& v) { return new Wrapper<T>(v); }
 
 // Global stack of objects.
 //    Add next member:        Type* next = gstack<T>(this);
@@ -264,7 +178,7 @@ class GStackSequence : public Sequence {
   public:
     T*   get()  { return element; }
     void next() { element = element->next; }
-    bool pending() const { return element; }
+    bool more() const { return element; }
     void print(OutStream& out) const { element->print(out); }
     T* operator->() { return get(); }
 
@@ -272,18 +186,135 @@ class GStackSequence : public Sequence {
     T* element = gstack<T>(); 
 };
 
-// ============================================================ 
-// Source Tracing
+///------------------------------------------------------
+///# Quality
 
+///## Error Handling
 struct SourcePoint {
-    SourcePoint(CString file, int l) : filename(file), line(l) {}
     CString filename;
     int line;
 
     void print(OutStream& out) const;
 };
 
-#define kwr_FileLine  kwr::SourcePoint(__FILE__, __LINE__)
+#define kwr_FileLine  kwr::SourcePoint{__FILE__, __LINE__}
+
+void require(bool condition, CString message, SourcePoint source);
+#define kwr_require(condition)   kwr::require((condition), #condition, kwr_FileLine)
+
+void check(bool condition, CString message, SourcePoint source);
+#define kwr_check(condition)   kwr::check((condition), #condition, kwr_FileLine)
+
+void test(bool condition, CString message, SourcePoint source);
+#define kwr_test(condition)   kwr::test((condition), #condition, kwr_FileLine)
+
+///## Unit Testing
+
+class TestCase {
+  public:
+    virtual void run() = 0;
+    virtual const CString name() const;
+    void print(OutStream& out) const;
+
+    TestCase* const next = gstack<TestCase>(this);
+    virtual ~TestCase();
+
+    static GStackSequence<TestCase> sequence();
+};
+
+#define kwr_TestCase(TESTNAME) \
+struct TESTNAME: public kwr::TestCase { \
+    virtual const kwr::CString name() const { return kwr_Str(TESTNAME); } \
+    virtual void run(); \
+} kwr_UniqueName(kwr_TestCase_,TESTNAME); \
+void TESTNAME::run() 
+
+
+//======================================================
+// Resources
+
+class Resource {
+  public:
+    constexpr Resource() = default;
+    ~Resource() = default;
+    Resource(const Resource&) = delete;
+    Resource& operator=(const Resource&) = delete;
+
+    static void *operator new     (size_t) = delete;
+    static void *operator new[]   (size_t) = delete;
+    static void  operator delete  (void*)  = delete;
+    static void  operator delete[](void*)  = delete;
+
+    virtual bool empty() const =0;
+    virtual void dispose() =0;
+};
+
+template <typename T>
+class Handle : public Resource {
+  public:
+    explicit Handle(T* ptr = nullptr) : pointer(ptr) {}
+    ~Handle() { delete pointer; }
+
+    bool empty() const { return pointer == nullptr; }
+
+    T*       operator->()       { return  pointer; }
+    const T* operator->() const { return  pointer; }
+    T&       operator*()        { return  pointer; }
+    const T& operator*()  const { return  pointer; }
+
+    T*   release()           { return std::exchange(pointer, nullptr); }
+    void swap(Handle<T>& h)  { std::swap(pointer, h.pointer); }
+    void reset(T* p)         { Handle<T>(p).swap(*this); }
+    void move(Handle<T>& h)  { reset(h.release()); }
+    void dispose()           { reset(nullptr); }
+
+  private:
+    T* pointer {};
+};
+
+template <typename T>
+class Array : public Resource {
+  public:
+    Array() = default;
+    Array(Span<T> span) : array(span) {}
+    Array(int newSize) : Array({newSize, new T[newSize]}) {}
+    ~Array() { delete[] array.data; array.data = nullptr; }
+
+    T& operator[](int i) { return array.data[i]; }
+    const T& operator[](int i) const { return array.data[i]; }
+
+    int  size()      const { return array.size; }
+    bool empty()     const { return array.data == nullptr; }
+
+    Span<T> release()             { return std::exchange(array, Span<T>()); }
+    void    swap(Array<T>& other) { std::swap(array, other.array); }
+    void    reset(Span<T> span)   { Array<T>(span).swap(*this); }
+    void    move(Array<T>& other) { reset(other.release()); }
+    void    dispose()             { reset(Span<T>()); }
+
+  private:
+    Span<T> array;
+};
+
+class Value {
+  public:
+    virtual void print(OutStream& out) const =0;
+};
+
+template <typename T>
+class Wrapper : public Value {
+  public:
+    T data;
+
+    explicit Wrapper(const T& t) : data(t) {}
+    virtual void print(OutStream& out) const { out.print(data); }
+};
+
+template <typename T>
+Wrapper<T>* wrap(const T& v) { return new Wrapper<T>(v); }
+
+// ============================================================ 
+// Source Tracing
 
 class Trace {
 
@@ -318,7 +349,6 @@ class Trace {
   kwr::Trace kwr_UniqueName(kwr_Trace_, __LINE__) ( kwr_FileLine, (message) )
 
 class ScopeTrace : public Trace {
-
   public:
     explicit ScopeTrace(SourcePoint point, CString message);
     virtual void print(OutStream& out) const;
@@ -329,7 +359,6 @@ class ScopeTrace : public Trace {
   kwr::ScopeTrace kwr_UniqueName(kwr_Scope_, __LINE__) ( kwr_FileLine, (message) )
 
 class WatchTrace : public Trace {
-
   public:
     template <typename T>
     WatchTrace(SourcePoint point, CString name, T value) :
@@ -342,60 +371,41 @@ class WatchTrace : public Trace {
     virtual void print(OutStream& out) const;
 
   private:
-    Object<Value> watched;
+    Handle<Value> watched;
 
 };
 
 #define kwr_Watch(variable)   \
   kwr::WatchTrace kwr_UniqueName(kwr_Watch_, __LINE__) ( kwr_FileLine, #variable, (variable) )
 
-template <typename Handler>
-void Assertion(SourcePoint source, bool condition, CString message)
-{
-    if (!condition) Handler::fail(source, message);
-}
-
-class AssertHandler {
-  public:
-    static void fail(SourcePoint source, CString message);
-};
-
-#define kwr_Assert(condition)  \
-  kwr::Assertion<kwr::AssertHandler>( kwr_FileLine, (condition), kwr_Str(condition) )
 
 // ============================================================ 
-// Unit Testing
+// Configuration
 
-class TestFailure {
+template<typename T>
+class Attrib {
   public:
-    SourcePoint source;
-    CString message;
+    Attrib(BString n, T v): name(n), value(v) {}
+    void set(const String& s) { value = scan<T>(s); }
+    operator T() const { return value; }
 
-    void print(OutStream& out) const;
+    BString name;
+    T value;
 };
 
-class TestCase {
-  public:
-    virtual void run() = 0;
-    virtual const CString name() const;
-    void print(OutStream& out) const;
+#define kwr_Attrib(name, type, value)   kwr::Attrib<type> name { #name, value }
 
-    TestCase* const next = gstack<TestCase>(this);
-    virtual ~TestCase();
-
-    static void fail(SourcePoint point, CString message);
-    static GStackSequence<TestCase> sequence();
+struct Argument {
+    BString param;
+    BString name;
+    BString value;
 };
 
-#define kwr_TestCase(TESTNAME) \
-struct TESTNAME: public kwr::TestCase { \
-    virtual const kwr::CString name() const { return kwr_Str(TESTNAME); } \
-    virtual void run(); \
-} kwr_UniqueName(kwr_TestCase_,TESTNAME); \
-void TESTNAME::run() 
+struct Options {
+    virtual void set(const Argument& arg) =0;
+    void getargs(int argc, char* args[], char separator = '=');
+};
 
-#define kwr_Test(condition)  \
-  kwr::Assertion<kwr::TestCase>( kwr_FileLine, (condition), kwr_Str(condition) )
 
 } // kwr namespace
 
